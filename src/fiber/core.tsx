@@ -269,34 +269,26 @@ function gaugeArc(cx: number, cy: number, radius: number, from: number, to: numb
 }
 
 export function ScoreRing({ value, size = 196, label }: { value: number; size?: number; tone?: Tone; label?: string }) {
-  const score = Math.max(0, Math.min(100, value));
+  const score = Math.max(0, Math.min(100, Math.round(value)));
   const letter = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 40 ? 'D' : 'E';
   const gauge = GAUGE_COLOR[letter];
-  const width = size;
-  const pad = 16;
-  const radius = width / 2 - pad - 6;
-  const cx = width / 2;
-  const cy = pad + radius + 6;
-  const letterSize = size > 150 ? 28 : 22;
-  const height = Math.round(cy + letterSize + 24);
-  const [nx, ny] = gaugePoint(cx, cy, radius - 18, score / 100);
-  const ticks = [0, 0.25, 0.5, 0.75, 1];
+  const stroke = Math.max(18, Math.round(size * 0.16));
+  const inset = stroke / 2 + 2;
+  const radius = (size - inset * 2) / 2;
+  const cx = size / 2;
+  const cy = inset + radius;
+  const height = Math.round(cy + stroke / 2 + 2);
+  const gradeSize = Math.round(size * 0.26);
+  const scoreSize = Math.round(size * 0.13);
   return (
-    <div className="score-ring" style={{ width, height }}>
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label ?? `Score ${score}, grade ${letter}`}>
-        <path d={gaugeArc(cx, cy, radius, 0, 1)} fill="none" stroke="#ebebf0" strokeWidth={12} strokeLinecap="round" />
-        {score > 0 && <path d={gaugeArc(cx, cy, radius, 0, score / 100)} fill="none" stroke={gauge.arc} strokeWidth={12} strokeLinecap="round" />}
-        {ticks.map(tick => {
-          const [x1, y1] = gaugePoint(cx, cy, radius + 8, tick);
-          const [x2, y2] = gaugePoint(cx, cy, radius + 14, tick);
-          return <line key={tick} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#c6c6cc" strokeWidth={tick === 0 || tick === 1 ? 2 : 1.5} strokeLinecap="round" />;
-        })}
-        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={gauge.label} strokeWidth={3} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={5} fill={gauge.arc} stroke="#fff" strokeWidth={2} />
-        <text x={cx} y={cy + letterSize + 4} textAnchor="middle" fill={gauge.label} fontSize={letterSize} fontWeight={700} fontFamily="DM Sans, sans-serif">
+    <div className="score-ring" style={{ width: size, height }}>
+      <svg width={size} height={height} viewBox={`0 0 ${size} ${height}`} role="img" aria-label={label ?? `Grade ${letter}, score ${score}`}>
+        <path d={gaugeArc(cx, cy, radius, 0, 1)} fill="none" stroke="#ebe6f0" strokeWidth={stroke} strokeLinecap="round" />
+        {score > 0 && <path d={gaugeArc(cx, cy, radius, 0, score / 100)} fill="none" stroke={gauge.arc} strokeWidth={stroke} strokeLinecap="round" />}
+        <text x={cx - scoreSize * 0.85} y={cy - radius * 0.22} textAnchor="middle" dominantBaseline="middle" fontFamily="DM Sans, sans-serif" fontSize={gradeSize} fontWeight={700} fill={gauge.label}>
           {letter}
         </text>
-        <text x={cx} y={cy + letterSize + 20} textAnchor="middle" fill="#717180" fontSize={12} fontWeight={600} fontFamily="DM Sans, sans-serif">
+        <text x={cx + gradeSize * 0.42} y={cy - radius * 0.22} textAnchor="middle" dominantBaseline="middle" fontFamily="DM Sans, sans-serif" fontSize={scoreSize} fontWeight={600} fill="#5c5c6b">
           {score}
         </text>
       </svg>
