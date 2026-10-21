@@ -158,6 +158,35 @@ test('submits the Slack notebook as a one-time serverless run', async () => {
   assert.equal('new_cluster' in submitted.tasks[0], false);
 });
 
+test('submits with the stored workspace token and does not mint a foreign oauth token', async () => {
+  const original = global.fetch;
+  const calls = [];
+  global.fetch = async (url, init) => {
+    calls.push({ url: String(url), authorization: init?.headers?.Authorization });
+    return new Response(JSON.stringify({ run_id: 55 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+  try {
+    const { triggerAlert } = await import('./alerts.js');
+    const result = await triggerAlert({ pillar: 'Code', teamId: 'T-0001' }, {
+      ALERT_WORKSPACE_TOKEN: 'stored-token',
+      ALERT_WORKSPACE_HOST: 'miqdigital-eng-data-platform.cloud.databricks.com',
+    }, {
+      query: async statement => {
+        if (statement.includes('miq_teams')) return [{ team_name: 'ANI', slack_channel_id: 'C123', slack_channel_name: 'ani' }];
+        if (statement.includes('miq_team_members')) return [{ member_email: 'a@miqdigital.com' }];
+        return [];
+      },
+    });
+    assert.equal(result.runId, 55);
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].url, /\/api\/2\.2\/jobs\/runs\/submit$/);
+    assert.equal(calls[0].authorization, 'Bearer stored-token');
+    assert.doesNotMatch(calls[0].url, /oidc\/v1\/token/);
+  } finally {
+    global.fetch = original;
+  }
+});
+
 test('rejects a pillar the notifier does not cover', async () => {
   const { triggerAlert } = await import('./alerts.js');
   await assert.rejects(() => triggerAlert({ pillar: 'Data', teamId: 'T-0001' }, {}, { query: async () => [] }), /no alert for the Data pillar/);

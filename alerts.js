@@ -148,9 +148,29 @@ async function servicePrincipalToken(env, host = hostOf(env)) {
     },
     body: new URLSearchParams({ grant_type: 'client_credentials', scope: 'all-apis' }),
   });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.error_description || 'Unable to authenticate the app');
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detail = body.error_description || body.message || body.error || response.status;
+    throw new Error(`Unable to authenticate the app (${detail})`);
+  }
   return body.access_token;
+}
+
+async function alertWorkspaceToken(env) {
+  if (env.ALERT_WORKSPACE_TOKEN) return String(env.ALERT_WORKSPACE_TOKEN).trim();
+  const scope = env.ALERT_TOKEN_SECRET_SCOPE || 'scorecard-alerts';
+  const key = env.ALERT_TOKEN_SECRET_KEY || 'eng_workspace_token';
+  const home = hostOf(env);
+  if (!home) throw new Error('Unable to authenticate the app');
+  const token = await servicePrincipalToken(env, home);
+  const response = await fetch(`https://${home}/api/2.0/secrets/get`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ scope, key }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || !body.value) throw new Error(body.message || 'The app cannot read its eng-data-platform credential');
+  return Buffer.from(body.value, 'base64').toString('utf8').trim();
 }
 
 async function deliverAlert(input, env, options = {}) {
@@ -224,7 +244,7 @@ async function postAlert({ channel, teamName, messages }, env, options) {
     result = await options.submitRun(runPayload);
   } else {
     const host = String(env.ALERT_WORKSPACE_HOST || 'miqdigital-eng-data-platform.cloud.databricks.com').replace(/^https?:\/\//, '');
-    const token = await servicePrincipalToken(env, host);
+    const token = await alertWorkspaceToken(env);
     const response = await fetch(`https://${host}/api/2.2/jobs/runs/submit`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

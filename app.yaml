@@ -10,3 +10,7 @@ env:
     value: miqdigital-eng-data-platform.cloud.databricks.com
   - name: ALERT_NOTEBOOK_PATH
     value: /Users/sudarshana.b@miqdigital.com/accountability_scorecard_slack
+  - name: ALERT_TOKEN_SECRET_SCOPE
+    value: scorecard-alerts
+  - name: ALERT_TOKEN_SECRET_KEY
+    value: eng_workspace_token
