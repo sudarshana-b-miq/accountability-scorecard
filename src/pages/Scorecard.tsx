@@ -133,6 +133,18 @@ export function Scorecard() {
     .map(item => ({ item, score: itemScore(item, excepted, month.offset) }))
     .sort((a, b) => a.score - b.score)
     .slice(0, 6);
+  const ownerLoad = [...teamItems.reduce((map, item) => {
+    const score = itemScore(item, excepted, month.offset);
+    const row = map.get(item.owner) ?? { owner: item.owner, weak: 0, total: 0 };
+    row.total += 1;
+    if (score < 75) row.weak += 1;
+    map.set(item.owner, row);
+    return map;
+  }, new Map<string, { owner: string; weak: number; total: number }>()).values()]
+    .filter(row => row.weak > 0)
+    .sort((a, b) => b.weak - a.weak || b.total - a.total)
+    .slice(0, 4);
+  const ownerMax = Math.max(1, ...ownerLoad.map(row => row.weak));
 
   return (
     <div id="scorecard-pdf" className={refreshing ? 'page is-refreshing' : 'page'}>
@@ -274,20 +286,26 @@ export function Scorecard() {
           </Card>
           <Card className="pillar-card">
             <div className="chart-card__head">
-              <div className="kpi-label">Score Caps</div>
-              <p className="muted xs">
-                {summary.cap < 100 ? `A cap is on. The overall grade cannot go above ${grade(summary.cap)} until it clears.` : 'No caps are on. The overall score is not being held back.'}
-              </p>
+              <div className="kpi-label">Owners To Talk To</div>
+              <p className="muted xs">Resources scoring under 75. Click an owner to filter the list below.</p>
             </div>
-            <div className="gate-list">
-              {summary.gates.map(gate => (
-                <div key={gate.label} className={`gate-row${gate.ok ? ' is-ok' : ' is-on'}`}>
-                  <span className="gate-row__mark">{gate.ok ? '✓' : '!'}</span>
-                  <span className="gate-row__label">{gate.label.split('·')[0].trim()}</span>
-                  <span className="gate-row__state">{gate.ok ? 'Clear' : gate.cap ? `Caps At ${grade(gate.cap)}` : 'Watch'}</span>
-                </div>
-              ))}
-            </div>
+            {ownerLoad.length === 0 ? (
+              <p className="muted sm">Every resource is 75 or above.</p>
+            ) : (
+              <div className="bar-chart bar-chart--names">
+                {ownerLoad.map(row => (
+                  <button key={row.owner} type="button" className="bar-chart__row" onClick={() => setOwnerFilter(row.owner)}>
+                    <span className="bar-chart__label" title={row.owner}>
+                      <span className="bar-chart__name">{row.owner.split('@')[0]}</span>
+                    </span>
+                    <span className="bar-chart__track">
+                      <span style={{ width: `${Math.max(2, (row.weak / ownerMax) * 100)}%` }} />
+                    </span>
+                    <span className="bar-chart__value">{row.weak}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </Card>
           </div>
           <Card className="pillar-card">

@@ -388,13 +388,6 @@ a { color: var(--f-brand-500); text-decoration: none; }
 .home-focus__stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .home-focus__stack > * { flex: 1; }
 .home-focus .chart-grid > .pillar-card > *, .home-focus__stack > .pillar-card > * { height: 100%; box-sizing: border-box; }
-.gate-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
-.gate-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 12px; line-height: 16px; }
-.gate-row__mark { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #fff; background: var(--f-success, #1e8158); }
-.gate-row.is-on .gate-row__mark { background: var(--f-sigma-pink); }
-.gate-row__label { color: var(--f-n-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gate-row__state { font-weight: 600; color: var(--f-n-600); white-space: nowrap; }
-.gate-row.is-on .gate-row__state { color: var(--f-sigma-pink); }
 .bar-chart { display: flex; flex-direction: column; gap: 10px; }
 .bar-chart__row { display: grid; grid-template-columns: 132px minmax(0, 1fr) 64px; align-items: center; gap: 10px; }
 button.bar-chart__row { width: 100%; border: 0; padding: 2px 0; background: transparent; cursor: pointer; font: inherit; color: inherit; text-align: left; border-radius: 6px; }
