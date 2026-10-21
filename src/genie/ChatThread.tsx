@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowClockwise, Check, Code as CodeIcon, Copy, Database, LockKey, Sparkle, ThumbsDown, ThumbsUp } from '@miq/fiber-ui/icons';
+import { ArrowClockwise, Check, Code as CodeIcon, Copy, Database, LockKey, ThumbsDown, ThumbsUp } from '@miq/fiber-ui/icons';
 import { ButtonV2, Chip, IconButton } from '../fiber';
+import { GenieIcon } from '../components/GenieIcon';
 import { useStore } from '../state/Store';
 import { useGenie } from './GenieProvider';
 import { SCOPES, contextLabel, suggestionsFor } from './engine';
@@ -9,7 +10,7 @@ import { SCOPES, contextLabel, suggestionsFor } from './engine';
 export function GenieAvatar({ size = 28 }: { size?: number }) {
   return (
     <span className="genie-avatar" style={{ width: size, height: size }}>
-      <Sparkle size={Math.round(size * 0.55)} weight="fill" />
+      <GenieIcon size={Math.round(size * 0.62)} solid />
     </span>
   );
 }

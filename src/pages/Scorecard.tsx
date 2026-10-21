@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowsClockwise, BellSimple, CaretRight, Code, Cpu, Database, DownloadSimple, MagnifyingGlass, Sparkle, SquaresFour, UsersThree } from '@miq/fiber-ui/icons';
+import { ArrowsClockwise, BellSimple, CaretRight, Code, Cpu, Database, DownloadSimple, MagnifyingGlass, SquaresFour, UsersThree } from '@miq/fiber-ui/icons';
 import { useGenie } from '../genie/GenieProvider';
 import { ButtonV2, Card, Chip, Dropdown, IconButton, InfoPopover, Input, Pill, ScoreRing, Tabs } from '../fiber';
 import { PILLAR_WEIGHTS, findingsFor, grade, itemScore, itemsForTeam, money, teamById, teamFilterOptions, teamSummary } from '../data/model';
@@ -8,6 +8,7 @@ import type { Item, Pillar } from '../data/model';
 import { useStore } from '../state/Store';
 import { CompositeInfo, PillarInfo } from '../components/ScoreInfo';
 import { NotifyModal } from '../components/NotifyModal';
+import { GenieIcon } from '../components/GenieIcon';
 import { ScoreSticker } from '../components/ScoreSticker';
 import { PillarPill, ScoreCell } from '../components/bits';
 import { exportElementAsPdf } from '../utils/exportPdf';
@@ -346,7 +347,7 @@ export function Scorecard() {
                       ['pillar', 'Pillar'],
                       ['owner', 'Owner'],
                       ['score', 'Score'],
-                      ['issues', 'Open Issues'],
+                      ['issues', 'Issues'],
                     ] as const
                   ).map(([key, label]) => (
                     <th key={key} className={key === 'issues' ? 'is-center' : undefined}>
@@ -403,7 +404,7 @@ export function Scorecard() {
                             Alert
                           </ButtonV2>
                           <IconButton label="Ask Genie About This Resource" size="sm" onClick={() => askAbout({ kind: 'item', itemId: i.id })}>
-                            <Sparkle size={18} />
+                            <GenieIcon size={18} />
                           </IconButton>
                           <IconButton label="Open Breakdown" size="sm" onClick={() => navigate(`/item/${i.id}`)}>
                             <CaretRight size={18} />

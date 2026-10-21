@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { ArrowsClockwise, ClockCounterClockwise, DownloadSimple, LockSimple, Sparkle, UsersThree } from '@miq/fiber-ui/icons';
+import { ArrowsClockwise, ClockCounterClockwise, DownloadSimple, LockSimple, UsersThree } from '@miq/fiber-ui/icons';
 import { ButtonV2, Dropdown, IconButton, Pill } from '../fiber';
+import { GenieIcon } from './GenieIcon';
 import { teamFilterOptions } from '../data/model';
 import { useStore } from '../state/Store';
 import { useGenie } from '../genie/GenieProvider';
@@ -55,7 +56,7 @@ export function Toolbar({ compact, children }: { compact?: boolean; children?: R
             <ButtonV2 variant="secondary" startIcon={<DownloadSimple size={16} />} onClick={() => toast({ tone: 'success', title: 'Export ready', body: 'scorecard.csv has been downloaded.' })}>
               Export
             </ButtonV2>
-            <ButtonV2 startIcon={<Sparkle size={16} weight="fill" />} onClick={() => askAbout({ kind: 'team' })}>
+            <ButtonV2 startIcon={<GenieIcon size={16} solid />} onClick={() => askAbout({ kind: 'team' })}>
               Ask Genie
             </ButtonV2>
           </>

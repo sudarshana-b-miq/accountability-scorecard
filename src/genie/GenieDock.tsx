@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowsOutSimple, CaretDown, ChatCircleText, Sparkle, Trash, X } from '@miq/fiber-ui/icons';
+import { ArrowsOutSimple, CaretDown, ChatCircleText, Trash, X } from '@miq/fiber-ui/icons';
 import { AIPrompt, IconButton, useClickOutside } from '../fiber';
+import { GenieIcon } from '../components/GenieIcon';
 import { useStore } from '../state/Store';
 import { useGenie } from './GenieProvider';
 import { ChatThread, GenieAvatar } from './ChatThread';
@@ -83,7 +84,7 @@ export function GenieDock() {
         placeholder={`Ask Genie about ${label}…`}
         bottomLeftSlot={
           <span className="ctx-chip" title="Genie answers in this context">
-            <Sparkle size={12} weight="fill" />
+            <GenieIcon size={13} solid />
             {label}
             {context.kind !== 'team' && !pathname.startsWith('/item/') && (
               <button type="button" aria-label="Reset context" onClick={() => setContext({ kind: 'team' })}>

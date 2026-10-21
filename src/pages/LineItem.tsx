@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, BellSimple, CaretRight, CheckCircle, ClockCounterClockwise, Database, HourglassMedium, ShieldCheck, Sparkle, User, XCircle } from '@miq/fiber-ui/icons';
+import { ArrowLeft, BellSimple, CaretRight, CheckCircle, ClockCounterClockwise, Database, HourglassMedium, ShieldCheck, User, XCircle } from '@miq/fiber-ui/icons';
 import { useGenie } from '../genie/GenieProvider';
 import { Badge, ButtonV2, Card, Chip, DataTable, IconButton, InfoPopover, Pill, ProgressBar, ScoreRing, SegmentedControl } from '../fiber';
+import { GenieIcon } from '../components/GenieIcon';
 import type { Column } from '../fiber';
 import { DIMS, checkSource, codalBand, dimScores, findingsFor, grade, itemById, itemScore, teamById, toneOf } from '../data/model';
 import type { Finding, Result } from '../data/model';
@@ -156,7 +157,7 @@ export function LineItem() {
             </div>
           </div>
           <div className="row-gap">
-            <ButtonV2 variant="tertiary" startIcon={<Sparkle size={16} weight="fill" />} onClick={() => askAbout({ kind: 'item', itemId: item.id }, 'Why is this score low?')}>
+            <ButtonV2 variant="tertiary" startIcon={<GenieIcon size={16} />} onClick={() => askAbout({ kind: 'item', itemId: item.id }, 'Why is this score low?')}>
               Ask Genie
             </ButtonV2>
             <ButtonV2 variant="secondary" startIcon={<BellSimple size={16} />} disabled={isPastMonth} onClick={() => setNotify({})}>

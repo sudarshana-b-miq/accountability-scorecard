@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowSquareOut, Sparkle, Trash, X } from '@miq/fiber-ui/icons';
+import { ArrowSquareOut, Trash, X } from '@miq/fiber-ui/icons';
 import { AIPrompt, Badge, ButtonV2, Card, IconButton, ScoreRing } from '../fiber';
+import { GenieIcon } from '../components/GenieIcon';
 import { grade, itemScore, itemsForTeam, teamById, teamSummary, toneOf } from '../data/model';
 import type { Pillar } from '../data/model';
 import { useStore } from '../state/Store';
@@ -55,7 +56,7 @@ export function Genie() {
               placeholder={`Ask Genie about ${label}…`}
               bottomLeftSlot={
                 <span className="ctx-chip">
-                  <Sparkle size={12} weight="fill" />
+                  <GenieIcon size={13} solid />
                   {label}
                   {context.kind !== 'team' && (
                     <button type="button" aria-label="Reset context" onClick={() => setContext({ kind: 'team' })}>

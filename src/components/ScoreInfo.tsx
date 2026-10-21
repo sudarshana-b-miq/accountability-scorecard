@@ -35,14 +35,66 @@ export function CompositeInfo() {
       </div>
       <div className="info-pop__label">Hard gates cap the grade</div>
       <ul className="info-pop__list">
-        <li><Warning size={14} weight="fill" color="#DA294B" /> Secret open beyond SLA → max <b>D</b></li>
-        <li><Warning size={14} weight="fill" color="#8D6F00" /> Budget overrun, chronic failing jobs, or most assets below Documented → max <b>C</b></li>
+        <li><Warning size={14} weight="fill" color="#DA294B" /> <span>Secret open beyond SLA → max <b>D</b></span></li>
+        <li><Warning size={14} weight="fill" color="#8D6F00" /> <span>Budget overrun, chronic failing jobs, or most assets below Documented → max <b>C</b></span></li>
       </ul>
       <div className="info-pop__label">Raw vs policy-adjusted</div>
       <p className="info-pop__lead" style={{ margin: 0 }}>The raw score never changes. Admin-approved exceptions only affect the policy-adjusted score, and only until they expire.</p>
       <div className="info-pop__label">How to use it</div>
       <p className="info-pop__lead" style={{ margin: 0 }}>Start with the lowest pillar, then open the lowest-scoring resources. Open issues show the failed checks contributing to each score; Alert sends the responsible owner the evidence and suggested action.</p>
       <div className="info-pop__foot">Sources: system.access · system.lakeflow · system.compute · system.billing · information_schema</div>
+    </div>
+  );
+}
+
+export function HelpInfo() {
+  return (
+    <div className="info-pop help-pop">
+      <div className="info-pop__title">How your scores work</div>
+      <p className="info-pop__lead">Every score runs from 0 to 100. Higher is better. Scores refresh from Databricks tables each month.</p>
+
+      <div className="info-pop__label">1 · Resource score</div>
+      <p className="info-pop__lead">
+        Each notebook, job or table is checked against a list of rules. Passing a rule earns its points; failing it doesn't. The resource score is the share of points earned.
+      </p>
+      <Formula>Passed 7 of 10 points → resource score 70</Formula>
+
+      <div className="info-pop__label">2 · Pillar score</div>
+      <p className="info-pop__lead">Code, Compute and Data each take the average of their resources.</p>
+      <ul className="info-pop__list help-pop__pillars">
+        <li><b>Code</b> — no hard-coded secrets (biggest share), code quality, repo hygiene, safe dependencies.</li>
+        <li><b>Compute</b> — jobs that don't fail, right-sized clusters, budgets and tags, up-to-date runtimes.</li>
+        <li><b>Data</b> — clear names and owners, good descriptions, partitioning, access controls, lineage.</li>
+      </ul>
+
+      <div className="info-pop__label">3 · Overall score</div>
+      <p className="info-pop__lead">Data counts for half. Code and Compute count for a quarter each.</p>
+      <Formula>25% × Code 78 + 25% × Compute 80 + 50% × Data 61 = 70</Formula>
+
+      <div className="info-pop__label">4 · Grade</div>
+      <div className="bands">
+        {bands.map(([g, r, t]) => (
+          <Badge key={g} tone={t}>
+            {g} · {r}
+          </Badge>
+        ))}
+      </div>
+
+      <div className="info-pop__label">Limits on the grade</div>
+      <ul className="info-pop__list">
+        <li><Warning size={14} weight="fill" color="#DA294B" /> <span>A secret left open past its fix deadline caps the grade at <b>D</b>.</span></li>
+        <li><Warning size={14} weight="fill" color="#8D6F00" /> <span>Going over budget, jobs that keep failing, or mostly undocumented tables cap it at <b>C</b>.</span></li>
+      </ul>
+
+      <div className="info-pop__label">Issues and exceptions</div>
+      <p className="info-pop__lead">
+        <b>Issues</b> is the number of rules a resource currently fails. Fixing one adds its points back. An admin can approve a temporary exception, which stops that rule counting until it expires.
+      </p>
+
+      <div className="info-pop__label">Where to start</div>
+      <p className="info-pop__lead" style={{ margin: 0 }}>
+        Pick the lowest pillar, sort resources by score, and fix the ones with the most issues. Use <b>Alert</b> to notify the owner, or ask Genie why a score is low.
+      </p>
     </div>
   );
 }
