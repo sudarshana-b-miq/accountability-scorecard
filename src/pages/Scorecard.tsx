@@ -132,32 +132,47 @@ export function Scorecard() {
           </div>
           <div className="composite__body">
             <ScoreRing value={summary.adjusted} size={176} caption={false} />
-            <div className="kpi-stack">
-              <span className="composite__name">
+            <div className="composite__side">
+              <div className="kpi-stack">
                 <span className="composite__team">{team.short}</span>
-                <ScoreSticker score={summary.adjusted} />
-              </span>
-              <span className="score-ring__caption">
-                <span>Score:</span> {Math.round(summary.adjusted)}
-              </span>
-              <span className="muted sm">
-                {teamItems.length} Resources Across 3 Pillars
-              </span>
-              {metrics.compute && <SpendDelta pct={metrics.compute.spendChangePct} direction={metrics.compute.spendDirection} />}
+                <span className="score-ring__caption">
+                  <span>Score:</span> {Math.round(summary.adjusted)}
+                </span>
+                <span className="muted sm">
+                  {teamItems.length} Resources Across 3 Pillars
+                </span>
+                {metrics.compute && <SpendDelta pct={metrics.compute.spendChangePct} direction={metrics.compute.spendDirection} />}
+              </div>
+              <ScoreSticker score={summary.adjusted} />
             </div>
           </div>
         </Card>
 
         {(['Code', 'Compute', 'Data'] as Pillar[]).map(p => {
           const s = summary.pillars[p];
-          const footer =
+          const facts: [string, string][] =
             p === 'Data' && metrics.data
-              ? `${metrics.data.totalAssets} Assets · ${codalBand(s.adjusted)}`
+              ? [
+                  ['Assets', String(metrics.data.totalAssets)],
+                  ['Governed', String(metrics.data.governedCount)],
+                  ['Band', codalBand(s.adjusted)],
+                ]
               : p === 'Compute' && metrics.compute
-                ? `${metrics.compute.failedRuns}/${metrics.compute.jobRuns} Failed Runs · ${money(metrics.compute.spendCurrentUsd)}`
+                ? [
+                    ['Failed runs', `${metrics.compute.failedRuns}/${metrics.compute.jobRuns}`],
+                    ['Spend', money(metrics.compute.spendCurrentUsd)],
+                    ['Chronic', String(metrics.compute.chronicPastSla)],
+                  ]
                 : p === 'Code' && metrics.code
-                  ? `${metrics.code.totalFindings} Findings · ${metrics.code.notebooksAffected} Notebooks`
-                  : `${s.count} Resources · ${PILLAR_WEIGHTS[p] * 100}% Of Team Score`;
+                  ? [
+                      ['Findings', String(metrics.code.totalFindings)],
+                      ['Notebooks', String(metrics.code.notebooksAffected)],
+                      ['High', String(metrics.code.highCount)],
+                    ]
+                  : [
+                      ['Resources', String(s.count)],
+                      ['Weight', `${PILLAR_WEIGHTS[p] * 100}%`],
+                    ];
           return (
             <Card key={p} interactive selected={tab === p} onClick={() => setTab(tab === p ? 'All' : p)} className={`kpi-card kpi-card--${p.toLowerCase()}`}>
               <div className="kpi-label">
@@ -171,10 +186,17 @@ export function Scorecard() {
                 <span className={`kpi-grade grade-${grade(s.adjusted).toLowerCase()}`}>{grade(s.adjusted)}</span>
                 <span className="kpi-score">{s.adjusted}</span>
               </div>
+              <div className="kpi-facts">
+                {facts.map(([label, value]) => (
+                  <div key={label} className="kpi-fact">
+                    <span>{label}</span>
+                    <b>{value}</b>
+                  </div>
+                ))}
+              </div>
               <div className="meter">
                 <span style={{ width: `${s.adjusted}%` }} className={`pillar-fill pillar-fill--${p.toLowerCase()}`} />
               </div>
-              <div className="muted xs">{footer}</div>
             </Card>
           );
         })}
