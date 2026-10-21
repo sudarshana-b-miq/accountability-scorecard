@@ -177,9 +177,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setRefreshing(true);
     try {
       const response = await fetch('/api/scorecard', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Scorecard API returned ${response.status}`);
-      const data = await response.json() as LiveScorecard;
-      if (!data.teams.length) throw new Error('No active teams were returned');
+      const body = await response.text();
+      let data: LiveScorecard & { error?: string };
+      try {
+        data = JSON.parse(body) as LiveScorecard & { error?: string };
+      } catch {
+        throw new Error(`Scorecard API returned ${response.status} with a non-JSON body`);
+      }
+      if (!response.ok || data.error) throw new Error(data.error || `Scorecard API returned ${response.status}`);
+      if (!data.teams?.length) throw new Error('No active teams were returned');
       replaceScorecardData(data);
       setTeamId(current =>
         current === ALL_TEAMS_ID || TEAMS.some(team => team.id === current) ? current : ALL_TEAMS_ID,

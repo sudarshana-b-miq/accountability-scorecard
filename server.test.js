@@ -95,11 +95,30 @@ test('returns the Databricks-backed scorecard', async () => {
 test('reports a temporary failure when Databricks is unavailable', async () => {
   await withServer(async baseUrl => {
     const response = await fetch(`${baseUrl}/api/scorecard`);
-    assert.equal(response.status, 503);
-    assert.deepEqual(await response.json(), { error: 'Databricks data is temporarily unavailable' });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), {
+      error: 'warehouse unavailable',
+      teams: [],
+      items: [],
+    });
   }, async () => {
     throw new Error('warehouse unavailable');
   });
+});
+
+test('queries with the forwarded user token', async () => {
+  let seenToken;
+  await withServer(async baseUrl => {
+    const response = await fetch(`${baseUrl}/api/scorecard`, {
+      headers: { 'x-forwarded-access-token': 'user-token' },
+    });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).teams[0].id, 'T-0001');
+  }, async (_env, token) => {
+    seenToken = token;
+    return { teams: [{ id: 'T-0001' }], items: [] };
+  });
+  assert.equal(seenToken, 'user-token');
 });
 
 test('serves the SPA entry point for client routes', async () => {

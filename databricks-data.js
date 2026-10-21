@@ -432,7 +432,7 @@ export function normalizeScorecard(raw) {
   };
 }
 
-function connectionOptions(env) {
+function connectionOptions(env, accessToken) {
   const host = String(env.DATABRICKS_SERVER_HOSTNAME || env.DATABRICKS_HOST || '').replace(/^https?:\/\//, '');
   const warehouseId = env.DATABRICKS_WAREHOUSE_ID || '8d04a00a80f4c77e';
   if (!host) throw new Error('DATABRICKS_HOST or DATABRICKS_SERVER_HOSTNAME is required');
@@ -441,7 +441,8 @@ function connectionOptions(env) {
     path: env.DATABRICKS_HTTP_PATH || `/sql/1.0/warehouses/${warehouseId}`,
     telemetryEnabled: false,
   };
-  if (env.DATABRICKS_TOKEN) return { ...options, token: env.DATABRICKS_TOKEN };
+  const token = accessToken || env.DATABRICKS_TOKEN;
+  if (token) return { ...options, authType: 'access-token', token };
   return {
     ...options,
     authType: 'databricks-oauth',
@@ -450,11 +451,11 @@ function connectionOptions(env) {
   };
 }
 
-export async function loadScorecard(env = process.env) {
+export async function loadScorecard(env = process.env, accessToken) {
   const client = new DBSQLClient();
   let session;
   try {
-    await client.connect(connectionOptions(env));
+    await client.connect(connectionOptions(env, accessToken));
     session = await client.openSession();
     const raw = {};
     for (const [name, sql] of Object.entries(TABLE_QUERIES)) {

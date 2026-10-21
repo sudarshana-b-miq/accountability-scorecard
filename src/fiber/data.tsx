@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Badge, ColumnSort, DataTable as FiberDataTable, MetricsCard as FiberMetrics, Tab, TabNavs, TabPanel, TabPanels, Tabs as FiberTabs, Typography } from '@miq/fiber-ui';
+import { Badge, ColumnSort, DataTable as FiberDataTable, MetricsCard as FiberMetrics, Tab, TabNavs, Tabs as FiberTabs, Typography } from '@miq/fiber-ui';
 import type { DataTableColumnDef } from '@miq/fiber-ui';
 import type { SortingState } from '@tanstack/react-table';
 import { Info } from '@miq/fiber-ui/icons';
@@ -32,13 +32,6 @@ export function Tabs<T extends string>({
           />
         ))}
       </TabNavs>
-      <TabPanels>
-        {items.map((item, itemIndex) => (
-          <TabPanel key={item.value} index={itemIndex}>
-            {null}
-          </TabPanel>
-        ))}
-      </TabPanels>
     </FiberTabs>
   );
 }

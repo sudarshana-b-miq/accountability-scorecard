@@ -9,7 +9,7 @@ import { useStore } from '../state/Store';
 import { CompositeInfo, PillarInfo } from '../components/ScoreInfo';
 import { NotifyModal } from '../components/NotifyModal';
 import { ScoreSticker } from '../components/ScoreSticker';
-import { PillarPill, ScoreCell, StatusPill, itemStatus } from '../components/bits';
+import { PillarPill, ScoreCell } from '../components/bits';
 
 type PillarTab = 'All' | Pillar;
 const GRADE_FILTERS: { key: string; label: string }[] = [
@@ -33,14 +33,14 @@ function SpendDelta({ pct, direction }: { pct: number; direction?: string | null
   const cls = up ? 'down' : 'up';
   return (
     <span className={`delta ${cls}`}>
-      {up ? '↑' : '↓'} {Math.abs(Math.round(pct))}% spend
-      <span className="vs">vs prior window</span>
+      {up ? '↑' : '↓'} {Math.abs(Math.round(pct))}% Spend
+      <span className="vs">Vs Prior Window</span>
     </span>
   );
 }
 
 export function Scorecard() {
-  const { teamId, setTeamId, month, excepted, stageOf, pendingByFinding, isPastMonth, refresh, refreshing, toast, dataError } = useStore();
+  const { teamId, setTeamId, month, excepted, isPastMonth, refresh, refreshing, toast, dataError } = useStore();
   const navigate = useNavigate();
   const { askAbout } = useGenie();
   const [params, setParams] = useSearchParams();
@@ -50,9 +50,8 @@ export function Scorecard() {
   const [query, setQuery] = useState('');
   const [gradeFilter, setGradeFilter] = useState<string | null>(null);
   const [ownerFilter, setOwnerFilter] = useState('any');
-  const [statusFilter, setStatusFilter] = useState('any');
   const [notify, setNotify] = useState<Item | null>(null);
-  const [sort, setSort] = useState<{ key: 'name' | 'pillar' | 'owner' | 'score' | 'issues' | 'status'; dir: 'asc' | 'desc' }>({ key: 'score', dir: 'asc' });
+  const [sort, setSort] = useState<{ key: 'name' | 'pillar' | 'owner' | 'score' | 'issues'; dir: 'asc' | 'desc' }>({ key: 'score', dir: 'asc' });
 
   const team = teamById(teamId);
   const summary = teamSummary(teamId, excepted, month.offset);
@@ -66,18 +65,9 @@ export function Scorecard() {
         .filter(i => tab === 'All' || i.pillar === tab)
         .filter(i => !query || `${i.name} ${i.path} ${i.owner}`.toLowerCase().includes(query.toLowerCase()))
         .filter(i => !gradeFilter || grade(itemScore(i, excepted, month.offset)) === gradeFilter)
-        .filter(i => ownerFilter === 'any' || i.owner === ownerFilter)
-        .filter(i => {
-          if (statusFilter === 'any') return true;
-          return itemStatus(i, stageOf, excepted, pendingByFinding).label === statusFilter;
-        }),
-    [teamItems, tab, query, gradeFilter, ownerFilter, statusFilter, excepted, month.offset, stageOf, pendingByFinding],
+        .filter(i => ownerFilter === 'any' || i.owner === ownerFilter),
+    [teamItems, tab, query, gradeFilter, ownerFilter, excepted, month.offset],
   );
-
-  const statusOptions = useMemo(() => {
-    const labels = new Set(teamItems.map(i => itemStatus(i, stageOf, excepted, pendingByFinding).label));
-    return [...labels].sort();
-  }, [teamItems, stageOf, excepted, pendingByFinding]);
 
   const openCount = (i: Item) => findingsFor(i).filter(f => f.result !== 'Pass' && !excepted.has(f.id)).length;
   const sorted = useMemo(() => {
@@ -86,8 +76,7 @@ export function Scorecard() {
       if (sort.key === 'pillar') return i.pillar;
       if (sort.key === 'owner') return i.owner;
       if (sort.key === 'score') return itemScore(i, excepted, month.offset);
-      if (sort.key === 'issues') return openCount(i);
-      return itemStatus(i, stageOf, excepted, pendingByFinding).label;
+      return openCount(i);
     };
     return [...rows].sort((a, b) => {
       const left = value(a);
@@ -95,30 +84,30 @@ export function Scorecard() {
       const cmp = typeof left === 'number' && typeof right === 'number' ? left - right : String(left).localeCompare(String(right));
       return sort.dir === 'asc' ? cmp : -cmp;
     });
-  }, [rows, sort, excepted, month.offset, stageOf, pendingByFinding]);
+  }, [rows, sort, excepted, month.offset]);
 
   const toggleSort = (key: typeof sort.key) =>
-    setSort(current => (current.key === key ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' || key === 'owner' || key === 'pillar' ? 'asc' : 'asc' }));
+    setSort(current => (current.key === key ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
 
   const pillarCount = (p: PillarTab) => (p === 'All' ? teamItems.length : teamItems.filter(i => i.pillar === p).length);
 
   const lowest = (['Code', 'Compute', 'Data'] as Pillar[]).reduce((a, b) => (summary.pillars[b].adjusted < summary.pillars[a].adjusted ? b : a));
-  const headline = `${team.short} scores ${summary.adjusted} (grade ${grade(summary.adjusted)}). Lowest pillar: ${lowest} at ${summary.pillars[lowest].adjusted}.`;
+  const headline = `${team.short} Scores ${summary.adjusted} (Grade ${grade(summary.adjusted)}). Lowest Pillar: ${lowest} At ${summary.pillars[lowest].adjusted}.`;
 
   return (
     <div className={refreshing ? 'page is-refreshing' : 'page'}>
       <div className="page-head page-hero">
         <div>
-          <span className="page-eyebrow">MiQ · Data platform accountability</span>
+          <span className="page-eyebrow">MiQ · Data Platform Accountability</span>
           <h1 className="h1">Accountability Scorecard</h1>
           <p className="page-sub">
-            {team.name} · {teamItems.length} line items{team.channel ? ` · owner channel ${team.channel}` : ''}
+            {team.name} · {teamItems.length} Resources{team.channel ? ` · Owner Channel ${team.channel}` : ''}
           </p>
         </div>
         <div className="page-actions">
           <Pill tone="neutral">As of {month.published}</Pill>
           <Dropdown value={teamId} onChange={setTeamId} label="Team" icon={<UsersThree size={16} />} width={280} options={teamFilterOptions()} />
-          <IconButton label={refreshing ? 'Refreshing…' : 'Refresh scores'} outlined onClick={refresh} disabled={refreshing}>
+          <IconButton label={refreshing ? 'Refreshing…' : 'Refresh Scores'} outlined onClick={refresh} disabled={refreshing}>
             <ArrowsClockwise size={18} className={refreshing ? 'spin' : undefined} />
           </IconButton>
           <ButtonV2 variant="secondary" startIcon={<DownloadSimple size={16} />} onClick={() => toast({ tone: 'success', title: 'Export ready', body: 'scorecard.csv has been downloaded.' })}>
@@ -129,15 +118,15 @@ export function Scorecard() {
 
       {dataError && (
         <Card>
-          <p className="muted">Unable to load scorecard tables: {dataError}. Scores stay empty until Databricks data is available.</p>
+          <p className="muted">Unable To Load Scorecard Tables: {dataError}. Scores Stay Empty Until Databricks Data Is Available.</p>
         </Card>
       )}
 
       <div className="score-grid">
         <Card className="composite">
           <div className="kpi-label">
-            Team score
-            <InfoPopover title="How the team score is calculated" width={440}>
+            Team Score
+            <InfoPopover title="How The Team Score Is Calculated" width={440}>
               <CompositeInfo />
             </InfoPopover>
           </div>
@@ -149,7 +138,7 @@ export function Scorecard() {
                 <ScoreSticker score={summary.adjusted} />
               </span>
               <span className="muted sm">
-                {teamItems.length} line items across 3 pillars
+                {teamItems.length} Resources Across 3 Pillars
               </span>
               {metrics.compute && <SpendDelta pct={metrics.compute.spendChangePct} direction={metrics.compute.spendDirection} />}
             </div>
@@ -160,18 +149,18 @@ export function Scorecard() {
           const s = summary.pillars[p];
           const footer =
             p === 'Data' && metrics.data
-              ? `${metrics.data.totalAssets} assets · ${codalBand(s.adjusted)}`
+              ? `${metrics.data.totalAssets} Assets · ${codalBand(s.adjusted)}`
               : p === 'Compute' && metrics.compute
-                ? `${metrics.compute.failedRuns}/${metrics.compute.jobRuns} failed runs · ${money(metrics.compute.spendCurrentUsd)}`
+                ? `${metrics.compute.failedRuns}/${metrics.compute.jobRuns} Failed Runs · ${money(metrics.compute.spendCurrentUsd)}`
                 : p === 'Code' && metrics.code
-                  ? `${metrics.code.totalFindings} findings · ${metrics.code.notebooksAffected} notebooks`
-                  : `${s.count} items · ${PILLAR_WEIGHTS[p] * 100}% of team score`;
+                  ? `${metrics.code.totalFindings} Findings · ${metrics.code.notebooksAffected} Notebooks`
+                  : `${s.count} Resources · ${PILLAR_WEIGHTS[p] * 100}% Of Team Score`;
           return (
             <Card key={p} interactive selected={tab === p} onClick={() => setTab(tab === p ? 'All' : p)} className={`kpi-card kpi-card--${p.toLowerCase()}`}>
               <div className="kpi-label">
                 <span className={`pillar-dot pillar-dot--${p.toLowerCase()}`} />
                 {p}
-                <InfoPopover title={`How the ${p} score is calculated`}>
+                <InfoPopover title={`How The ${p} Score Is Calculated`}>
                   <PillarInfo pillar={p} />
                 </InfoPopover>
               </div>
@@ -190,29 +179,29 @@ export function Scorecard() {
 
       <section className="section">
         <div className="section-head">
-          <h2 className="h2">Evidence from accountability tables</h2>
+          <h2 className="h2">Evidence From Accountability Tables</h2>
           <p>{headline}</p>
         </div>
         <div className="score-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
           <Card>
-            <div className="kpi-label">Data · asset bands</div>
+            <div className="kpi-label">Data · Asset Bands</div>
             <div className="muted sm">
               {metrics.data
-                ? `${metrics.data.catalogGradeCount} catalog-grade · ${metrics.data.governedCount} governed · ${metrics.data.documentedCount} documented · ${metrics.data.assetsMissingComment} missing comments`
-                : 'No accountability_data_summary rows for this team'}
+                ? `${metrics.data.catalogGradeCount} Catalog-Grade · ${metrics.data.governedCount} Governed · ${metrics.data.documentedCount} Documented · ${metrics.data.assetsMissingComment} Missing Comments`
+                : 'No accountability_data_summary Rows For This Team'}
             </div>
             {metrics.data && (
               <div className="muted xs" style={{ marginTop: 8 }}>
-                Avg ontology {Math.round(metrics.data.avgOntology)} · convention {Math.round(metrics.data.avgConvention)} · lineage {Math.round(metrics.data.avgLineage)}
+                Avg Ontology {Math.round(metrics.data.avgOntology)} · Convention {Math.round(metrics.data.avgConvention)} · Lineage {Math.round(metrics.data.avgLineage)}
               </div>
             )}
           </Card>
           <Card>
-            <div className="kpi-label">Compute · spend window</div>
+            <div className="kpi-label">Compute · Spend Window</div>
             <div className="muted sm">
               {metrics.compute
-                ? `${money(metrics.compute.spendCurrentUsd)} current · ${money(metrics.compute.spendPreviousUsd)} prior · ${metrics.compute.chronicPastSla} chronic past SLA`
-                : 'No accountability_compute_summary rows for this team'}
+                ? `${money(metrics.compute.spendCurrentUsd)} Current · ${money(metrics.compute.spendPreviousUsd)} Prior · ${metrics.compute.chronicPastSla} Chronic Past SLA`
+                : 'No accountability_compute_summary Rows For This Team'}
             </div>
             {metrics.compute?.windowStart && (
               <div className="muted xs" style={{ marginTop: 8 }}>
@@ -221,11 +210,11 @@ export function Scorecard() {
             )}
           </Card>
           <Card>
-            <div className="kpi-label">Code · secret findings</div>
+            <div className="kpi-label">Code · Secret Findings</div>
             <div className="muted sm">
               {metrics.code
-                ? `${metrics.code.highCount} high · ${metrics.code.mediumCount} medium · ${metrics.code.lowCount} low across ${metrics.code.notebooksAffected} notebooks`
-                : 'No accountability_code_summary rows for this team'}
+                ? `${metrics.code.highCount} High · ${metrics.code.mediumCount} Medium · ${metrics.code.lowCount} Low Across ${metrics.code.notebooksAffected} Notebooks`
+                : 'No accountability_code_summary Rows For This Team'}
             </div>
             {summary.gates.length > 0 && (
               <div className="muted xs" style={{ marginTop: 8 }}>
@@ -240,12 +229,12 @@ export function Scorecard() {
         <Card padded={false}>
           <div className="table-head">
             <div className="table-head__title">
-              <h2 className="h2">Line items</h2>
+              <h2 className="h2">Resources</h2>
               <p className="table-head__meta">
-                {teamItems.length} items · sorted by score, lowest first
+                {teamItems.length} Resources · Sorted By Score, Lowest First
               </p>
             </div>
-            <Input icon={<MagnifyingGlass size={16} />} placeholder="Search name, path or owner" value={query} onChange={e => setQuery(e.target.value)} width={280} />
+            <Input icon={<MagnifyingGlass size={16} />} placeholder="Search Name, Path Or Owner" value={query} onChange={e => setQuery(e.target.value)} width={280} />
           </div>
           <div className="table-tabs">
             <Tabs
@@ -285,13 +274,6 @@ export function Scorecard() {
                 width={160}
                 options={[{ value: 'any', label: 'Any' }, ...owners.map(o => ({ value: o, label: o }))]}
               />
-              <Dropdown
-                value={statusFilter}
-                onChange={setStatusFilter}
-                label="Status"
-                width={180}
-                options={[{ value: 'any', label: 'Any' }, ...statusOptions.map(s => ({ value: s, label: s }))]}
-              />
             </div>
           </div>
           <div className="line-table-wrap">
@@ -302,19 +284,17 @@ export function Scorecard() {
                 <col className="line-table__owner" />
                 <col className="line-table__score" />
                 <col className="line-table__issues" />
-                <col className="line-table__status" />
                 <col className="line-table__actions" />
               </colgroup>
               <thead>
                 <tr>
                   {(
                     [
-                      ['name', 'Line item'],
+                      ['name', 'Resource'],
                       ['pillar', 'Pillar'],
                       ['owner', 'Owner'],
                       ['score', 'Score'],
-                      ['issues', 'Open issues'],
-                      ['status', 'Status'],
+                      ['issues', 'Open Issues'],
                     ] as const
                   ).map(([key, label]) => (
                     <th key={key} className={key === 'issues' ? 'is-center' : undefined}>
@@ -330,8 +310,8 @@ export function Scorecard() {
               <tbody>
                 {sorted.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="line-table__empty">
-                      No results match your filters.
+                    <td colSpan={6} className="line-table__empty">
+                      No Resources Match Your Filters.
                     </td>
                   </tr>
                 ) : (
@@ -348,25 +328,32 @@ export function Scorecard() {
                       <td>
                         <PillarPill pillar={i.pillar} />
                       </td>
-                      <td className="muted">{i.owner}</td>
                       <td>
-                        <ScoreCell score={itemScore(i, excepted, month.offset)} layout="bar" />
+                        <div className="owner-cell" title={i.owner}>
+                          {i.owner}
+                        </div>
+                      </td>
+                      <td>
+                        <ScoreCell score={itemScore(i, excepted, month.offset)} layout="bar" width={180} />
                       </td>
                       <td className="is-center">
                         <span className="issues-cell">{openCount(i)}</span>
                       </td>
                       <td>
-                        <StatusPill {...itemStatus(i, stageOf, excepted, pendingByFinding)} />
-                      </td>
-                      <td>
                         <div className="row-actions" onClick={e => e.stopPropagation()}>
-                          <IconButton label="Ask Genie about this item" size="sm" onClick={() => askAbout({ kind: 'item', itemId: i.id })}>
+                          <ButtonV2
+                            className="alert-btn"
+                            size="sm"
+                            startIcon={<BellSimple size={16} weight="fill" />}
+                            onClick={() => setNotify(i)}
+                            disabled={isPastMonth}
+                          >
+                            Alert
+                          </ButtonV2>
+                          <IconButton label="Ask Genie About This Resource" size="sm" onClick={() => askAbout({ kind: 'item', itemId: i.id })}>
                             <Sparkle size={18} />
                           </IconButton>
-                          <IconButton label="Notify owner or team" size="sm" onClick={() => setNotify(i)} disabled={isPastMonth}>
-                            <BellSimple size={18} />
-                          </IconButton>
-                          <IconButton label="Open breakdown" size="sm" onClick={() => navigate(`/item/${i.id}`)}>
+                          <IconButton label="Open Breakdown" size="sm" onClick={() => navigate(`/item/${i.id}`)}>
                             <CaretRight size={18} />
                           </IconButton>
                         </div>
