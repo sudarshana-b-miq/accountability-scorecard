@@ -7,11 +7,18 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "start": "node server.js",
+    "test": "node --test server.test.js",
+    "typecheck": "tsc --noEmit",
+    "databricks:validate": "databricks apps validate --skip-tests",
+    "databricks:deploy": "databricks apps deploy",
+    "databricks:run": "databricks bundle run accountability_scorecard"
   },
   "dependencies": {
+    "@databricks/sql": "^1.17.0",
     "@miq/fiber-ui": "^18.40.0",
     "@phosphor-icons/react": "2.1.7",
+    "express": "^4.21.2",
     "highcharts": "^12.4.0",
     "highcharts-react-official": "^3.2.3",
     "react": "18.3.1",
@@ -19,6 +26,7 @@
     "react-router-dom": "6.28.0"
   },
   "devDependencies": {
+    "@types/express": "^5.0.5",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",

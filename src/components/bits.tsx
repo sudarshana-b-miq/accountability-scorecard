@@ -16,10 +16,10 @@ export function ScoreCell({ score, width = 160, compact, layout = 'default' }: {
   const tone = toneOf(score);
   if (layout === 'bar' || compact) {
     return (
-      <div className={`score-bar tone-${tone}`} style={layout === 'bar' ? { width } : undefined}>
+      <div className={`score-bar grade-${letter.toLowerCase()}`} style={layout === 'bar' ? { width } : undefined}>
         <span className="score-bar__val">{score}</span>
         <span className="score-bar__track">
-          <ProgressBar value={score} tone={tone} />
+          <span style={{ width: `${score}%` }} />
         </span>
         <span className="score-bar__grade">{letter}</span>
       </div>

@@ -250,9 +250,9 @@ export function ProgressBar({ value, tone = 'brand' }: { value: number; tone?: T
 
 const GAUGE_COLOR: Record<string, { arc: string; label: string }> = {
   A: { arc: '#1e8158', label: '#115639' },
-  B: { arc: '#2360db', label: '#1344a8' },
+  B: { arc: '#62c47a', label: '#1f7a45' },
   C: { arc: '#f8c500', label: '#8d6f00' },
-  D: { arc: '#ef8736', label: '#863d0c' },
+  D: { arc: '#ef8736', label: '#c45c00' },
   E: { arc: '#da294b', label: '#ad102c' },
 };
 

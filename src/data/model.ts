@@ -15,6 +15,10 @@ export interface Team {
   name: string;
   short: string;
   channel: string;
+  description?: string;
+  members?: { email: string; role: string; joinedAt?: string }[];
+  schemas?: string[];
+  scores?: Record<Pillar, number>;
 }
 
 export interface Item {
@@ -27,6 +31,14 @@ export interface Item {
   owner: string;
   dims: Record<string, number>;
   meta?: string[];
+  liveFindings?: Finding[];
+}
+
+export interface LiveScorecard {
+  teams: Team[];
+  items: Item[];
+  refreshedAt: number;
+  sources?: Record<string, number>;
 }
 
 export interface Finding {
@@ -160,6 +172,7 @@ export const ITEMS: Item[] = [
 const findingCache = new Map<string, Finding[]>();
 
 export function findingsFor(item: Item): Finding[] {
+  if (item.liveFindings) return item.liveFindings;
   const cached = findingCache.get(item.id);
   if (cached) return cached;
   const out: Finding[] = [];
@@ -230,14 +243,24 @@ export interface TeamSummary {
 
 const avg = (xs: number[]) => (xs.length ? Math.round(xs.reduce((a, b) => a + b, 0) / xs.length) : 100);
 
+export function replaceScorecardData(data: LiveScorecard) {
+  TEAMS.splice(0, TEAMS.length, ...data.teams);
+  ITEMS.splice(0, ITEMS.length, ...data.items);
+  findingCache.clear();
+}
+
 export function teamSummary(teamId: string, excepted: Set<string>, offset = 0): TeamSummary {
   const items = ITEMS.filter(i => i.team === teamId);
+  const team = teamById(teamId);
   const pillars = {} as TeamSummary['pillars'];
   (['Code', 'Compute', 'Data'] as Pillar[]).forEach(p => {
     const ps = items.filter(i => i.pillar === p);
+    const calculatedRaw = avg(ps.map(i => itemScore(i, new Set(), offset)));
+    const calculatedAdjusted = avg(ps.map(i => itemScore(i, excepted, offset)));
+    const liveRaw = team.scores?.[p];
     pillars[p] = {
-      raw: avg(ps.map(i => itemScore(i, new Set(), offset))),
-      adjusted: avg(ps.map(i => itemScore(i, excepted, offset))),
+      raw: liveRaw == null ? calculatedRaw : clamp(liveRaw + offset),
+      adjusted: liveRaw == null ? calculatedAdjusted : clamp(liveRaw + offset + calculatedAdjusted - calculatedRaw),
       count: ps.length,
     };
   });

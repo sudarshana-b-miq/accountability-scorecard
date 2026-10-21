@@ -1,7 +1,7 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle, Info, PaperPlaneTilt, WarningCircle } from '@miq/fiber-ui/icons';
 import type { Tone } from '../fiber';
-import { MONTHS, findingById, itemById, teamById } from '../data/model';
+import { MONTHS, TEAMS, findingById, itemById, replaceScorecardData, type LiveScorecard } from '../data/model';
 
 export type Stage = 'Detected' | 'Notified' | 'Accepted' | 'Implemented' | 'Verified';
 export const STAGES: Stage[] = ['Detected', 'Notified', 'Accepted', 'Implemented', 'Verified'];
@@ -137,6 +137,7 @@ interface StoreValue {
   markAllRead: () => void;
   refreshing: boolean;
   refreshedAt: number;
+  dataError?: string;
   refresh: () => void;
   toast: (t: Omit<ToastMsg, 'id'>) => void;
 }
@@ -161,6 +162,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState(Date.now() - 2 * 3600 * 1000);
+  const [dataError, setDataError] = useState<string>();
+  const hasLiveData = useRef(false);
   const nextExc = useRef(1042);
   const nextId = useRef(1);
 
@@ -240,14 +243,44 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [addNotice, toast],
   );
 
-  const refresh = useCallback(() => {
+  const loadLiveData = useCallback(async (showSuccess: boolean) => {
     setRefreshing(true);
-    window.setTimeout(() => {
+    try {
+      const response = await fetch('/api/scorecard', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Scorecard API returned ${response.status}`);
+      const data = await response.json() as LiveScorecard;
+      if (!data.teams.length) throw new Error('No active teams were returned');
+      replaceScorecardData(data);
+      setTeamId(current => TEAMS.some(team => team.id === current) ? current : data.teams[0].id);
+      if (!hasLiveData.current) {
+        setExceptions([]);
+        setStages({});
+        setNotices([]);
+      }
+      hasLiveData.current = true;
+      setDataError(undefined);
+      setRefreshedAt(data.refreshedAt || Date.now());
+      if (showSuccess) {
+        toast({ tone: 'success', title: 'Scores refreshed', body: 'Latest Databricks evidence has been loaded.' });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to load scorecard data';
+      setDataError(message);
+      if (showSuccess) {
+        toast({ tone: 'error', title: 'Refresh failed', body: 'The last available scorecard remains visible.' });
+      }
+    } finally {
       setRefreshing(false);
-      setRefreshedAt(Date.now());
-      toast({ tone: 'success', title: 'Scores refreshed', body: `Latest evidence loaded for ${teamById(teamId).short}.` });
-    }, 1200);
-  }, [teamId, toast]);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    void loadLiveData(false);
+  }, [loadLiveData]);
+
+  const refresh = useCallback(() => {
+    void loadLiveData(true);
+  }, [loadLiveData]);
 
   const month = MONTHS.find(m => m.id === monthId) ?? MONTHS[0];
 
@@ -274,6 +307,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     markAllRead: () => setNotices(x => x.map(n => ({ ...n, read: true }))),
     refreshing,
     refreshedAt,
+    dataError,
     refresh,
     toast,
   };

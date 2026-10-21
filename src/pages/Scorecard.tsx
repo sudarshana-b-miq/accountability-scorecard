@@ -2,9 +2,8 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowsClockwise, BellSimple, CaretRight, Code, Cpu, Database, DownloadSimple, MagnifyingGlass, Sparkle, SquaresFour, UsersThree } from '@miq/fiber-ui/icons';
 import { useGenie } from '../genie/GenieProvider';
-import { ButtonV2, Card, Chip, DataTable, Dropdown, IconButton, InfoPopover, Input, Pill, ScoreRing, Tabs } from '../fiber';
-import type { Column } from '../fiber';
-import { ITEMS, MONTHS, PILLAR_WEIGHTS, TEAMS, codalBand, findingsFor, grade, itemScore, teamById, teamSummary, toneOf } from '../data/model';
+import { ButtonV2, Card, Chip, Dropdown, IconButton, InfoPopover, Input, Pill, ScoreRing, Tabs } from '../fiber';
+import { ITEMS, MONTHS, PILLAR_WEIGHTS, TEAMS, codalBand, findingsFor, grade, itemScore, teamById, teamSummary } from '../data/model';
 import type { Item, Pillar } from '../data/model';
 import { useStore } from '../state/Store';
 import { TrendChart } from '../components/TrendChart';
@@ -14,12 +13,12 @@ import { NotifyModal } from '../components/NotifyModal';
 import { PillarPill, ScoreCell, StatusPill, itemStatus } from '../components/bits';
 
 type PillarTab = 'All' | Pillar;
-const GRADE_FILTERS: { key: string; label: string; sample: number }[] = [
-  { key: 'E', label: 'E · <40', sample: 20 },
-  { key: 'D', label: 'D · 40–59', sample: 45 },
-  { key: 'C', label: 'C · 60–74', sample: 65 },
-  { key: 'B', label: 'B · 75–89', sample: 80 },
-  { key: 'A', label: 'A · 90+', sample: 95 },
+const GRADE_FILTERS: { key: string; label: string }[] = [
+  { key: 'E', label: 'E · <40' },
+  { key: 'D', label: 'D · 40–59' },
+  { key: 'C', label: 'C · 60–74' },
+  { key: 'B', label: 'B · 75–89' },
+  { key: 'A', label: 'A · 90+' },
 ];
 const PILLAR_TABS: PillarTab[] = ['All', 'Code', 'Compute', 'Data'];
 const PILLAR_TAB_ICON: Record<PillarTab, ReactNode> = {
@@ -61,6 +60,7 @@ export function Scorecard() {
   const [ownerFilter, setOwnerFilter] = useState('any');
   const [statusFilter, setStatusFilter] = useState('any');
   const [notify, setNotify] = useState<Item | null>(null);
+  const [sort, setSort] = useState<{ key: 'name' | 'pillar' | 'owner' | 'score' | 'issues' | 'status'; dir: 'asc' | 'desc' }>({ key: 'score', dir: 'asc' });
 
   const team = teamById(teamId);
   const summary = teamSummary(teamId, excepted, month.offset);
@@ -92,74 +92,26 @@ export function Scorecard() {
     return [...labels].sort();
   }, [teamItems, stageOf, excepted, pendingByFinding]);
 
-  const columns: Column<Item>[] = [
-    {
-      key: 'name',
-      header: 'Line item',
-      width: 260,
-      sortValue: i => i.name,
-      render: i => (
-        <div className="item-cell">
-          <div className="item-cell__name">{i.name}</div>
-          <div className="item-cell__sub">
-            {i.type} · {i.path}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'pillar',
-      header: 'Pillar',
-      width: 120,
-      sortValue: i => i.pillar,
-      render: i => <PillarPill pillar={i.pillar} />,
-    },
-    { key: 'owner', header: 'Owner', width: 110, sortValue: i => i.owner, render: i => <span className="muted">{i.owner}</span> },
-    {
-      key: 'score',
-      header: 'Score',
-      width: 180,
-      sortValue: i => itemScore(i, excepted, month.offset),
-      render: i => <ScoreCell score={itemScore(i, excepted, month.offset)} layout="bar" />,
-    },
-    {
-      key: 'issues',
-      header: 'Open issues',
-      width: 100,
-      align: 'center',
-      sortValue: i => findingsFor(i).filter(f => f.result !== 'Pass' && !excepted.has(f.id)).length,
-      render: i => {
-        const open = findingsFor(i).filter(f => f.result !== 'Pass' && !excepted.has(f.id)).length;
-        return <span className="issues-cell">{open}</span>;
-      },
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      width: 140,
-      sortValue: i => itemStatus(i, stageOf, excepted, pendingByFinding).label,
-      render: i => <StatusPill {...itemStatus(i, stageOf, excepted, pendingByFinding)} />,
-    },
-    {
-      key: 'actions',
-      header: '',
-      align: 'right',
-      width: 120,
-      render: i => (
-        <div className="row-actions" onClick={e => e.stopPropagation()}>
-          <IconButton label="Ask Genie about this item" size="sm" onClick={() => askAbout({ kind: 'item', itemId: i.id })}>
-            <Sparkle size={18} />
-          </IconButton>
-          <IconButton label="Notify owner or team" size="sm" onClick={() => setNotify(i)} disabled={isPastMonth}>
-            <BellSimple size={18} />
-          </IconButton>
-          <IconButton label="Open breakdown" size="sm" onClick={() => navigate(`/item/${i.id}`)}>
-            <CaretRight size={18} />
-          </IconButton>
-        </div>
-      ),
-    },
-  ];
+  const openCount = (i: Item) => findingsFor(i).filter(f => f.result !== 'Pass' && !excepted.has(f.id)).length;
+  const sorted = useMemo(() => {
+    const value = (i: Item): string | number => {
+      if (sort.key === 'name') return i.name;
+      if (sort.key === 'pillar') return i.pillar;
+      if (sort.key === 'owner') return i.owner;
+      if (sort.key === 'score') return itemScore(i, excepted, month.offset);
+      if (sort.key === 'issues') return openCount(i);
+      return itemStatus(i, stageOf, excepted, pendingByFinding).label;
+    };
+    return [...rows].sort((a, b) => {
+      const left = value(a);
+      const right = value(b);
+      const cmp = typeof left === 'number' && typeof right === 'number' ? left - right : String(left).localeCompare(String(right));
+      return sort.dir === 'asc' ? cmp : -cmp;
+    });
+  }, [rows, sort, excepted, month.offset, stageOf, pendingByFinding]);
+
+  const toggleSort = (key: typeof sort.key) =>
+    setSort(current => (current.key === key ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' || key === 'owner' || key === 'pillar' ? 'asc' : 'asc' }));
 
   const pillarCount = (p: PillarTab) => (p === 'All' ? teamItems.length : teamItems.filter(i => i.pillar === p).length);
 
@@ -222,7 +174,7 @@ export function Scorecard() {
                 </InfoPopover>
               </div>
               <div className="kpi-figure">
-                <span className={`kpi-grade tone-${toneOf(s.adjusted)}`}>{grade(s.adjusted)}</span>
+                <span className={`kpi-grade grade-${grade(s.adjusted).toLowerCase()}`}>{grade(s.adjusted)}</span>
                 <span className="kpi-score">{s.adjusted}</span>
               </div>
               {prevS && <Trend delta={s.adjusted - prevS.adjusted} />}
@@ -289,9 +241,15 @@ export function Scorecard() {
                 All
               </Chip>
               {GRADE_FILTERS.map(g => (
-                <Chip key={g.key} selected={gradeFilter === g.key} onClick={() => setGradeFilter(gradeFilter === g.key ? null : g.key)} dotTone={toneOf(g.sample)}>
+                <button
+                  key={g.key}
+                  type="button"
+                  className={`grade-chip grade-${g.key.toLowerCase()}${gradeFilter === g.key ? ' is-selected' : ''}`}
+                  onClick={() => setGradeFilter(gradeFilter === g.key ? null : g.key)}
+                >
+                  <span className="grade-chip__dot" />
                   {g.label}
-                </Chip>
+                </button>
               ))}
             </div>
             <div className="table-filters__end">
@@ -311,7 +269,89 @@ export function Scorecard() {
               />
             </div>
           </div>
-          <DataTable columns={columns} rows={rows} rowKey={i => i.id} onRowClick={i => navigate(`/item/${i.id}`)} defaultSort={{ key: 'score', dir: 'asc' }} />
+          <div className="line-table-wrap">
+            <table className="line-table">
+              <colgroup>
+                <col className="line-table__name" />
+                <col className="line-table__pillar" />
+                <col className="line-table__owner" />
+                <col className="line-table__score" />
+                <col className="line-table__issues" />
+                <col className="line-table__status" />
+                <col className="line-table__actions" />
+              </colgroup>
+              <thead>
+                <tr>
+                  {(
+                    [
+                      ['name', 'Line item'],
+                      ['pillar', 'Pillar'],
+                      ['owner', 'Owner'],
+                      ['score', 'Score'],
+                      ['issues', 'Open issues'],
+                      ['status', 'Status'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <th key={key} className={key === 'issues' ? 'is-center' : undefined}>
+                      <button type="button" onClick={() => toggleSort(key)}>
+                        {label}
+                        {sort.key === key && <span className="is-on">{sort.dir === 'desc' ? '↓' : '↑'}</span>}
+                      </button>
+                    </th>
+                  ))}
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="line-table__empty">
+                      No results match your filters.
+                    </td>
+                  </tr>
+                ) : (
+                  sorted.map(i => (
+                    <tr key={i.id} onClick={() => navigate(`/item/${i.id}`)}>
+                      <td>
+                        <div className="item-cell">
+                          <div className="item-cell__name">{i.name}</div>
+                          <div className="item-cell__sub">
+                            {i.type} · {i.path}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <PillarPill pillar={i.pillar} />
+                      </td>
+                      <td className="muted">{i.owner}</td>
+                      <td>
+                        <ScoreCell score={itemScore(i, excepted, month.offset)} layout="bar" />
+                      </td>
+                      <td className="is-center">
+                        <span className="issues-cell">{openCount(i)}</span>
+                      </td>
+                      <td>
+                        <StatusPill {...itemStatus(i, stageOf, excepted, pendingByFinding)} />
+                      </td>
+                      <td>
+                        <div className="row-actions" onClick={e => e.stopPropagation()}>
+                          <IconButton label="Ask Genie about this item" size="sm" onClick={() => askAbout({ kind: 'item', itemId: i.id })}>
+                            <Sparkle size={18} />
+                          </IconButton>
+                          <IconButton label="Notify owner or team" size="sm" onClick={() => setNotify(i)} disabled={isPastMonth}>
+                            <BellSimple size={18} />
+                          </IconButton>
+                          <IconButton label="Open breakdown" size="sm" onClick={() => navigate(`/item/${i.id}`)}>
+                            <CaretRight size={18} />
+                          </IconButton>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </section>
 
