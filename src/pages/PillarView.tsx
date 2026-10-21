@@ -157,6 +157,13 @@ export function PillarView({ pillar }: { pillar: Pillar }) {
           </div>
           <div className="line-table-wrap">
             <table className="line-table">
+              <colgroup>
+                <col className="line-table__name" />
+                <col className="line-table__owner" />
+                <col className="line-table__score" />
+                <col className="line-table__issues" />
+                <col className="line-table__actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Resource</th>

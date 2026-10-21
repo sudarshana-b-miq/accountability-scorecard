@@ -11,7 +11,7 @@ import { useStore } from '../state/Store';
 import { NotifyModal } from '../components/NotifyModal';
 import { RejectModal } from '../components/RejectModal';
 import { PillarInfo } from '../components/ScoreInfo';
-import { GradeBadge, PillarIcon, STAGE_TONE } from '../components/bits';
+import { PillarIcon, STAGE_TONE } from '../components/bits';
 
 type ResultFilter = 'All' | Result;
 
@@ -51,10 +51,11 @@ export function LineItem() {
   const team = teamById(item.team);
 
   const columns: Column<Finding>[] = [
-    { key: 'dim', header: 'Dim', width: 56, sortValue: f => f.dim, render: f => <span className="dim-letter">{f.dim}</span> },
+    { key: 'dim', header: 'Dim', width: 64, sortValue: f => f.dim, render: f => <span className="dim-letter">{f.dim}</span> },
     {
       key: 'check',
       header: 'Check',
+      width: 300,
       sortValue: f => f.check,
       render: f => (
         <div>
@@ -66,16 +67,18 @@ export function LineItem() {
     {
       key: 'result',
       header: 'Result',
+      width: 104,
       sortValue: f => f.result,
       render: f => (
         <Badge tone={excepted.has(f.id) ? 'neutral' : f.result === 'Fail' ? 'error' : f.result === 'Warn' ? 'warning' : 'success'}>{excepted.has(f.id) ? 'Excepted' : f.result}</Badge>
       ),
     },
-    { key: 'points', header: 'Dimension pts', align: 'right', sortValue: f => f.points, render: f => (f.points ? <b className={excepted.has(f.id) ? 'strike muted' : 'neg'}>−{f.points}</b> : <span className="muted">—</span>) },
-    { key: 'rec', header: 'Recommendation', render: f => <span className="sm">{f.recommendation}</span> },
+    { key: 'points', header: 'Points', align: 'right', width: 96, sortValue: f => f.points, render: f => (f.points ? <b className={excepted.has(f.id) ? 'strike muted' : 'neg'}>−{f.points}</b> : <span className="muted">—</span>) },
+    { key: 'rec', header: 'Recommendation', width: 360, render: f => <span className="sm">{f.recommendation}</span> },
     {
       key: 'state',
       header: 'State',
+      width: 168,
       render: f => {
         if (f.result === 'Pass') return <span className="muted">—</span>;
         if (excepted.has(f.id)) return <Pill tone="success" icon={<ShieldCheck size={14} />}>Exception approved</Pill>;
@@ -115,23 +118,24 @@ export function LineItem() {
         <span className="b">{item.name}</span>
       </div>
 
-      <Card className="item-hero">
-        <ScoreRing value={adjusted} tone={toneOf(adjusted)} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="row-gap" style={{ flexWrap: 'wrap' }}>
+      <Card className={`item-hero item-hero--${item.pillar.toLowerCase()}`}>
+        <div className="item-hero__gauge">
+          <ScoreRing value={adjusted} size={132} caption={false} />
+          <span className="item-hero__gauge-label">Score {adjusted}</span>
+        </div>
+        <div className="item-hero__main">
+          <span className="page-eyebrow">MiQ · {item.pillar} Resource</span>
+          <div className="item-hero__title">
             <span className="item-hero__icon">
               <PillarIcon pillar={item.pillar} size={18} />
             </span>
-            <h1 className="h1" style={{ margin: 0 }}>
-              {item.name}
-            </h1>
-            <GradeBadge score={adjusted} />
+            <h1 className="h1" title={item.name}>{item.name}</h1>
             {item.pillar === 'Data' && <Pill tone="brand">{codalBand(adjusted)}</Pill>}
           </div>
-          <div className="muted" style={{ margin: '6px 0 12px' }}>
+          <div className="item-hero__path" title={item.path}>
             {item.type} · {item.path}
           </div>
-          <div className="row-gap" style={{ flexWrap: 'wrap' }}>
+          <div className="item-hero__tags">
             <Pill tone="neutral" icon={<User size={14} />}>
               {item.owner}
             </Pill>
@@ -146,17 +150,21 @@ export function LineItem() {
           </div>
         </div>
         <div className="item-hero__side">
-          <div className="raw-adj">
+          <div className="item-hero__stats">
             <div>
-              <span className="muted xs">Raw</span>
+              <span>Raw</span>
               <b>{raw}</b>
             </div>
             <div>
-              <span className="muted xs">Adjusted</span>
+              <span>Adjusted</span>
               <b>{adjusted}</b>
             </div>
+            <div>
+              <span>Open Issues</span>
+              <b>{all.filter(f => f.result !== 'Pass' && !excepted.has(f.id)).length}</b>
+            </div>
           </div>
-          <div className="row-gap">
+          <div className="item-hero__actions">
             <ButtonV2 variant="tertiary" startIcon={<GenieIcon size={16} />} onClick={() => askAbout({ kind: 'item', itemId: item.id }, 'Why is this score low?')}>
               Ask Genie
             </ButtonV2>
@@ -170,44 +178,51 @@ export function LineItem() {
         </div>
       </Card>
 
-      <div className="section-title">
-        <span className="h2">{item.pillar} breakdown</span>
-        <InfoPopover title="How this score is calculated" width={420}>
-          <PillarInfo pillar={item.pillar} />
-        </InfoPopover>
-        <span className="muted sm">Click a dimension to filter the findings</span>
+      <section className={`section item-breakdown item-hero--${item.pillar.toLowerCase()}`}>
+      <div className="section-head">
+        <h2 className="h2">
+          {item.pillar} Breakdown
+          <InfoPopover title="How This Score Is Calculated" width={420}>
+            <PillarInfo pillar={item.pillar} />
+          </InfoPopover>
+        </h2>
+        <p>Each dimension is weighted. Click one to filter the findings below.</p>
       </div>
-      <div className="dim-grid" style={{ gridTemplateColumns: `repeat(${DIMS[item.pillar].length}, 1fr)` }}>
+      <div className="dim-grid" style={{ gridTemplateColumns: `repeat(${DIMS[item.pillar].length}, minmax(0, 1fr))` }}>
         {DIMS[item.pillar].map(d => {
           const s = dims[d.key];
           const open = all.filter(f => f.dim === d.key && f.result !== 'Pass' && !excepted.has(f.id)).length;
           return (
             <Card key={d.key} interactive selected={dim === d.key} onClick={() => setDim(x => (x === d.key ? null : d.key))} className="dim-card">
-              <div className="row-gap" style={{ justifyContent: 'space-between' }}>
+              <div className="dim-card__top">
                 <span className="dim-letter dim-letter--lg">{d.key}</span>
-                <span className="muted xs">{Math.round(d.weight * 100)}%</span>
+                <span className="dim-card__name">{d.name}</span>
+                <span className="dim-card__weight">{Math.round(d.weight * 100)}%</span>
               </div>
-              <div className="dim-card__name">{d.name}</div>
               <div className="dim-card__score">
-                <b>{s}</b>
-                <Badge tone={toneOf(s)}>{grade(s)}</Badge>
+                <b>{s ?? '—'}</b>
+                {s != null && <Badge tone={toneOf(s)}>{grade(s)}</Badge>}
               </div>
-              <ProgressBar value={s} tone={toneOf(s)} />
-              <div className="muted xs" style={{ marginTop: 8 }}>
-                {open ? `${open} open issue${open > 1 ? 's' : ''}` : 'No open issues'} · {d.hint}
+              <ProgressBar value={s ?? 0} tone={s == null ? 'neutral' : toneOf(s)} />
+              <div className="dim-card__foot">
+                <b>{open ? `${open} Open Issue${open > 1 ? 's' : ''}` : 'No Open Issues'}</b>
+                <span>{d.hint}</span>
               </div>
             </Card>
           );
         })}
       </div>
+      </section>
 
       <Card padded={false}>
         <div className="table-head">
-          <div>
-            <div className="h2">Findings</div>
-            <div className="muted sm">
-              Evidence from {Array.from(new Set(all.filter(f => !dim || f.dim === dim).map(f => checkSource(f.dim, 0, item, f)))).slice(0, 3).join(', ')}
-            </div>
+          <div className="table-head__title">
+            <h2 className="h2">Findings</h2>
+            {scoped.length > 0 && (
+              <p className="table-head__meta">
+                Evidence From {Array.from(new Set(scoped.map(f => checkSource(f.dim, 0, item, f)))).slice(0, 3).join(', ')}
+              </p>
+            )}
           </div>
           <div className="row-gap">
             {dim && (
@@ -228,7 +243,7 @@ export function LineItem() {
       <Card>
         <div className="row-gap" style={{ marginBottom: 12 }}>
           <ClockCounterClockwise size={18} />
-          <span className="h2">Exception history</span>
+          <span className="h2">Exception History</span>
         </div>
         {history.length === 0 ? (
           <div className="muted">No exceptions have been requested for this line item.</div>
