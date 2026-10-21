@@ -22,6 +22,9 @@ export function CompositeInfo() {
       <p className="info-pop__lead">A monthly, evidence-based grade of how well a team builds code, runs compute and governs data. Every point traces back to a Databricks system table.</p>
       <div className="info-pop__label">Team composite</div>
       <Formula>Score = 25% Code + 25% Compute + 50% Data</Formula>
+      <p className="info-pop__lead">
+        The number is the policy-adjusted overall score for the selected team and monthly snapshot. Each pillar is scored from 0–100, then multiplied by its weight above.
+      </p>
       <div className="info-pop__label">Grade bands</div>
       <div className="bands">
         {bands.map(([g, r, t]) => (
@@ -37,6 +40,8 @@ export function CompositeInfo() {
       </ul>
       <div className="info-pop__label">Raw vs policy-adjusted</div>
       <p className="info-pop__lead" style={{ margin: 0 }}>The raw score never changes. Admin-approved exceptions only affect the policy-adjusted score, and only until they expire.</p>
+      <div className="info-pop__label">How to use it</div>
+      <p className="info-pop__lead" style={{ margin: 0 }}>Start with the lowest pillar, then open the lowest-scoring resources. Open issues show the failed checks contributing to each score; Alert sends the responsible owner the evidence and suggested action.</p>
       <div className="info-pop__foot">Sources: system.access · system.lakeflow · system.compute · system.billing · information_schema</div>
     </div>
   );
@@ -48,6 +53,24 @@ const PILLAR_TEXT: Record<Pillar, string> = {
   Data: 'Grades every Unity Catalog asset the team owns for catalog quality, ownership and governance.',
 };
 
+const PILLAR_DETAIL: Record<Pillar, { card: string; action: string; source: string }> = {
+  Code: {
+    card: 'Secrets is the total open secret findings, High risk is the urgent subset, and Notebooks is the number of affected notebooks.',
+    action: 'Remove or rotate exposed credentials first, then resolve high-risk findings and bring affected notebooks back into compliant repositories.',
+    source: 'accountability_code_summary · accountability_code_findings',
+  },
+  Compute: {
+    card: 'Success is the completed-run success rate, Spend is current-window cost, and Past SLA counts chronically failing jobs that remain unresolved.',
+    action: 'Prioritise jobs past SLA, then inspect repeated failures, oversized compute and spend changes against the prior window.',
+    source: 'accountability_compute_summary · long_failing_jobs_inventory · system.billing',
+  },
+  Data: {
+    card: 'Assets is the owned Unity Catalog estate, Governed is the count meeting the governed band, and No docs counts assets missing useful descriptions.',
+    action: 'Document undocumented assets first, then fix ownership, tags, access controls, lineage and lifecycle gaps shown in the resource breakdown.',
+    source: 'accountability_data_summary · accountability_codal_asset_scores · information_schema',
+  },
+};
+
 export function PillarInfo({ pillar }: { pillar: Pillar }) {
   return (
     <div className="info-pop">
@@ -55,6 +78,8 @@ export function PillarInfo({ pillar }: { pillar: Pillar }) {
         {pillar} score
       </div>
       <p className="info-pop__lead">{PILLAR_TEXT[pillar]} Worth {PILLAR_WEIGHTS[pillar] * 100}% of the team score.</p>
+      <div className="info-pop__label">What the card shows</div>
+      <p className="info-pop__lead">{PILLAR_DETAIL[pillar].card}</p>
       <div className="info-pop__label">Dimensions and weights</div>
       <div className="dim-list">
         {DIMS[pillar].map(d => (
@@ -72,6 +97,9 @@ export function PillarInfo({ pillar }: { pillar: Pillar }) {
         The pillar score is the average of the line items below.
         {pillar === 'Data' && ' Bands: Published 0–39, Documented 40–59, Governed 60–79, Catalog-grade 80–100.'}
       </p>
+      <div className="info-pop__label">Recommended next step</div>
+      <p className="info-pop__lead" style={{ margin: 0 }}>{PILLAR_DETAIL[pillar].action}</p>
+      <div className="info-pop__foot">Sources: {PILLAR_DETAIL[pillar].source}</div>
     </div>
   );
 }

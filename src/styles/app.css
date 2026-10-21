@@ -233,6 +233,9 @@ a { color: var(--f-brand-500); text-decoration: none; }
 .issues-cell { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 28px; font-variant-numeric: tabular-nums; font-weight: 500; color: var(--f-n-800); }
 .row-actions { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
 .row-actions .alert-btn { margin-right: 4px; font-weight: 600; white-space: nowrap; }
+.table-pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 60px; padding: 10px 24px; border-top: 1px solid var(--f-n-200); }
+.table-pagination__controls { display: flex; align-items: center; gap: 12px; }
+.table-pagination__page { min-width: 82px; text-align: center; font-size: 13px; font-weight: 600; color: var(--f-n-700); font-variant-numeric: tabular-nums; }
 
 /* Line item */
 .crumbs { display: flex; align-items: center; gap: 8px; color: var(--f-n-600); font-size: 13px; }

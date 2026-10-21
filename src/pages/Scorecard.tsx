@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowsClockwise, BellSimple, CaretRight, Code, Cpu, Database, DownloadSimple, MagnifyingGlass, Sparkle, SquaresFour, UsersThree } from '@miq/fiber-ui/icons';
 import { useGenie } from '../genie/GenieProvider';
@@ -10,6 +10,8 @@ import { CompositeInfo, PillarInfo } from '../components/ScoreInfo';
 import { NotifyModal } from '../components/NotifyModal';
 import { ScoreSticker } from '../components/ScoreSticker';
 import { PillarPill, ScoreCell } from '../components/bits';
+import { exportElementAsPdf } from '../utils/exportPdf';
+import { PAGE_SIZE, pageCount, paginate } from '../utils/pagination';
 
 type PillarTab = 'All' | Pillar;
 const GRADE_FILTERS: { key: string; label: string }[] = [
@@ -54,6 +56,8 @@ export function Scorecard() {
   const [ownerFilter, setOwnerFilter] = useState('any');
   const [notify, setNotify] = useState<Item | null>(null);
   const [sort, setSort] = useState<{ key: 'name' | 'pillar' | 'owner' | 'score' | 'issues'; dir: 'asc' | 'desc' }>({ key: 'score', dir: 'asc' });
+  const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
 
   const team = teamById(teamId);
   const summary = teamSummary(teamId, excepted, month.offset);
@@ -87,6 +91,26 @@ export function Scorecard() {
       return sort.dir === 'asc' ? cmp : -cmp;
     });
   }, [rows, sort, excepted, month.offset]);
+  const totalPages = pageCount(sorted.length);
+  const visibleRows = useMemo(() => (exporting ? sorted : paginate(sorted, page)), [sorted, page, exporting]);
+
+  useEffect(() => setPage(1), [teamId, tab, query, gradeFilter, ownerFilter, sort]);
+  useEffect(() => setPage(current => Math.min(current, totalPages)), [totalPages]);
+
+  const exportPdf = async () => {
+    const element = document.getElementById('scorecard-pdf');
+    if (!element) return;
+    setExporting(true);
+    try {
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await exportElementAsPdf(element, `accountability-scorecard-${team.short.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.pdf`);
+      toast({ tone: 'success', title: 'PDF downloaded', body: 'The scorecard was exported with the current layout and filters.' });
+    } catch {
+      toast({ tone: 'error', title: 'PDF export failed', body: 'Please try the export again.' });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const toggleSort = (key: typeof sort.key) =>
     setSort(current => (current.key === key ? { key, dir: current.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
@@ -97,7 +121,7 @@ export function Scorecard() {
   const headline = `${team.short} Scores ${summary.adjusted} (Grade ${grade(summary.adjusted)}). Lowest Pillar: ${lowest} At ${summary.pillars[lowest].adjusted}.`;
 
   return (
-    <div className={refreshing ? 'page is-refreshing' : 'page'}>
+    <div id="scorecard-pdf" className={refreshing ? 'page is-refreshing' : 'page'}>
       <div className="page-head page-hero">
         <div>
           <span className="page-eyebrow">MiQ · Data Platform Accountability</span>
@@ -112,8 +136,8 @@ export function Scorecard() {
           <IconButton label={refreshing ? 'Refreshing…' : 'Refresh Scores'} outlined onClick={refresh} disabled={refreshing}>
             <ArrowsClockwise size={18} className={refreshing ? 'spin' : undefined} />
           </IconButton>
-          <ButtonV2 variant="secondary" startIcon={<DownloadSimple size={16} />} onClick={() => toast({ tone: 'success', title: 'Export ready', body: 'scorecard.csv has been downloaded.' })}>
-            Export
+          <ButtonV2 data-hide-from-pdf variant="secondary" startIcon={<DownloadSimple size={16} />} loading={exporting} onClick={exportPdf}>
+            Export PDF
           </ButtonV2>
         </div>
       </div>
@@ -343,7 +367,7 @@ export function Scorecard() {
                     </td>
                   </tr>
                 ) : (
-                  sorted.map(i => (
+                  visibleRows.map(i => (
                     <tr key={i.id} onClick={() => navigate(`/item/${i.id}`)}>
                       <td>
                         <div className="item-cell">
@@ -392,6 +416,18 @@ export function Scorecard() {
               </tbody>
             </table>
           </div>
+          {!exporting && sorted.length > PAGE_SIZE && (
+            <div className="table-pagination">
+              <span className="muted sm">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, sorted.length)} of {sorted.length}
+              </span>
+              <div className="table-pagination__controls">
+                <ButtonV2 variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage(current => current - 1)}>Previous</ButtonV2>
+                <span className="table-pagination__page">Page {page} of {totalPages}</span>
+                <ButtonV2 variant="secondary" size="sm" disabled={page === totalPages} onClick={() => setPage(current => current + 1)}>Next</ButtonV2>
+              </div>
+            </div>
+          )}
         </Card>
       </section>
 
