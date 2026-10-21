@@ -139,8 +139,7 @@ function alertTypeOf(input) {
   return alertType;
 }
 
-async function servicePrincipalToken(env) {
-  const host = hostOf(env);
+async function servicePrincipalToken(env, host = hostOf(env)) {
   const response = await fetch(`https://${host}/oidc/v1/token`, {
     method: 'POST',
     headers: {
@@ -152,59 +151,6 @@ async function servicePrincipalToken(env) {
   const body = await response.json();
   if (!response.ok) throw new Error(body.error_description || 'Unable to authenticate the app');
   return body.access_token;
-}
-
-async function slackToken(env, accessToken) {
-  if (env.SLACK_BOT_TOKEN) return env.SLACK_BOT_TOKEN;
-  const host = hostOf(env);
-  const scope = env.SLACK_SECRET_SCOPE || 'flexible_job';
-  const key = env.SLACK_SECRET_KEY || 'slack_bot_token';
-  const bearers = [];
-  if (accessToken) bearers.push(accessToken);
-  if (env.DATABRICKS_CLIENT_ID && env.DATABRICKS_CLIENT_SECRET) bearers.push(await servicePrincipalToken(env));
-  if (!bearers.length) throw new Error('Slack bot token is not configured');
-  let lastError = `Unable to read Slack secret ${scope}/${key}`;
-  for (const bearer of bearers) {
-    const response = await fetch(`https://${host}/api/2.0/secrets/get?scope=${encodeURIComponent(scope)}&key=${encodeURIComponent(key)}`, {
-      headers: { Authorization: `Bearer ${bearer}` },
-    });
-    const body = await response.json().catch(() => ({}));
-    if (response.ok && body.value) return Buffer.from(body.value, 'base64').toString('utf8');
-    lastError = body.message || `Unable to read Slack secret ${scope}/${key} (${response.status})`;
-  }
-  throw new Error(lastError);
-}
-
-async function slackApi(token, method, { json, params } = {}) {
-  const headers = { Authorization: `Bearer ${token}` };
-  const response = json
-    ? await fetch(`https://slack.com/api/${method}`, {
-      method: 'POST',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(json),
-      signal: AbortSignal.timeout(15000),
-    })
-    : await fetch(`https://slack.com/api/${method}?${new URLSearchParams(params || {})}`, {
-      headers,
-      signal: AbortSignal.timeout(15000),
-    });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok || !data.ok) throw new Error(`Slack ${method}: ${data.error || response.status}`);
-  return data;
-}
-
-async function slackUserId(call, email) {
-  if (!email) return null;
-  try {
-    const data = await call('users.lookupByEmail', { params: { email } });
-    return data.user?.id || null;
-  } catch {
-    return null;
-  }
-}
-
-async function postMessage(call, channel, blocks, fallback) {
-  await call('chat.postMessage', { json: { channel, blocks, text: fallback } });
 }
 
 async function deliverAlert(input, env, options = {}) {
@@ -250,32 +196,48 @@ async function deliverAlert(input, env, options = {}) {
 }
 
 async function postAlert({ channel, teamName, messages }, env, options) {
-  const token = options.slackCall ? null : await slackToken(env, options.accessToken);
-  const call = options.slackCall || ((method, request) => slackApi(token, method, request));
-  let sent = 0;
-  const errors = [];
+  const payloadMessages = [];
   for (const message of messages) {
-    try {
-      let blocks = message.blocks;
-      if (message.ranked) {
-        const entries = [];
-        for (const entry of message.ranked) entries.push({ ...entry, slackUid: await slackUserId(call, entry.owner) });
-        blocks = secretLeaderboardBlocks(entries, teamName);
-      } else if (message.row) {
-        const email = message.row.run_as_email || message.row.owner_email || '';
-        blocks = longFailingBlocks(message.row, await slackUserId(call, email));
-      }
-      await postMessage(call, channel, blocks, message.fallback);
-      sent += 1;
-    } catch (error) {
-      errors.push(error instanceof Error ? error.message : 'Unable to post the Slack alert');
-    }
+    let blocks = message.blocks;
+    if (message.ranked) blocks = secretLeaderboardBlocks(message.ranked, teamName);
+    if (message.row) blocks = longFailingBlocks(message.row, null);
+    payloadMessages.push({ text: message.fallback, blocks });
   }
-  if (!sent) throw new Error(errors[0] || 'Unable to post the Slack alert');
+
+  const notebookPath = env.ALERT_NOTEBOOK_PATH || '/Users/sudarshana.b@miqdigital.com/accountability_scorecard_slack';
+  const runPayload = {
+    run_name: `Accountability Scorecard Alert · ${teamName}`,
+    tasks: [{
+      task_key: 'send_slack_alert',
+      notebook_task: {
+        notebook_path: notebookPath,
+        source: 'WORKSPACE',
+        base_parameters: {
+          channel,
+          messages: JSON.stringify(payloadMessages),
+        },
+      },
+    }],
+  };
+  let result;
+  if (options.submitRun) {
+    result = await options.submitRun(runPayload);
+  } else {
+    const host = String(env.ALERT_WORKSPACE_HOST || 'miqdigital-eng-data-platform.cloud.databricks.com').replace(/^https?:\/\//, '');
+    const token = await servicePrincipalToken(env, host);
+    const response = await fetch(`https://${host}/api/2.2/jobs/runs/submit`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(runPayload),
+      signal: AbortSignal.timeout(15000),
+    });
+    result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.message || `Unable to start the notification notebook (${response.status})`);
+  }
   return {
-    sent,
+    runId: result.run_id,
     channel,
-    summary: sent === 1 ? `Posted to ${teamName} on Slack` : `Posted ${sent} alerts to ${teamName} on Slack`,
+    summary: `Notification queued for ${teamName} on Slack`,
   };
 }
 

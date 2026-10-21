@@ -6,5 +6,7 @@ command:
 env:
   - name: DATABRICKS_WAREHOUSE_ID
     value: 8d04a00a80f4c77e
-  - name: SLACK_BOT_TOKEN
-    valueFrom: slack-bot-token
+  - name: ALERT_WORKSPACE_HOST
+    value: miqdigital-eng-data-platform.cloud.databricks.com
+  - name: ALERT_NOTEBOOK_PATH
+    value: /Users/sudarshana.b@miqdigital.com/accountability_scorecard_slack

@@ -121,10 +121,10 @@ test('queries with the forwarded user token', async () => {
   assert.equal(seenToken, 'user-token');
 });
 
-test('posts the notebook Slack alert without starting a job', async () => {
+test('submits the Slack notebook as a one-time serverless run', async () => {
   const { triggerAlert } = await import('./alerts.js');
   const statements = [];
-  const posts = [];
+  let submitted;
   const result = await triggerAlert({ pillar: 'Compute', teamId: 'T-0001' }, {}, {
     query: async statement => {
       statements.push(statement);
@@ -143,19 +143,19 @@ test('posts the notebook Slack alert without starting a job', async () => {
         trigger_type: 'CRON',
       }];
     },
-    slackCall: async (method, request) => {
-      posts.push({ method, ...request });
-      return { ok: true, user: { id: 'U1' }, message: { ts: '1.2' } };
+    submitRun: async payload => {
+      submitted = payload;
+      return { run_id: 123 };
     },
   });
 
-  assert.equal(result.sent, 1);
+  assert.equal(result.runId, 123);
   assert.equal(result.channel, 'C123');
   assert.match(statements.join('\n'), /long_failing_jobs_inventory/);
-  const message = posts.find(post => post.method === 'chat.postMessage');
-  assert.equal(message.json.channel, 'C123');
-  assert.match(message.json.text, /nightly/);
-  assert.equal(posts.some(post => post.method === 'users.lookupByEmail'), true);
+  assert.equal(submitted.tasks[0].notebook_task.notebook_path, '/Users/sudarshana.b@miqdigital.com/accountability_scorecard_slack');
+  assert.equal(submitted.tasks[0].notebook_task.base_parameters.channel, 'C123');
+  assert.match(submitted.tasks[0].notebook_task.base_parameters.messages, /nightly/);
+  assert.equal('new_cluster' in submitted.tasks[0], false);
 });
 
 test('rejects a pillar the notifier does not cover', async () => {
