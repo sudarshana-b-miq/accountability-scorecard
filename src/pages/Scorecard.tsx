@@ -32,10 +32,7 @@ function SpendDelta({ pct, direction }: { pct: number; direction?: string | null
   const up = direction === 'INCREASE' || pct > 0;
   const cls = up ? 'down' : 'up';
   return (
-    <span className={`delta ${cls}`}>
-      {up ? '↑' : '↓'} {Math.abs(Math.round(pct))}% Spend
-      <span className="vs">Vs Prior Window</span>
-    </span>
+    <span className={`delta ${cls}`}>{up ? '↑' : '↓'} {Math.abs(Math.round(pct))}% spend vs prior window</span>
   );
 }
 
@@ -137,9 +134,7 @@ export function Scorecard() {
                 <span className="composite__team">{team.short}</span>
                 <ScoreSticker score={summary.adjusted} />
               </div>
-              <span className="score-ring__caption">
-                <span>Score:</span> {Math.round(summary.adjusted)}
-              </span>
+              <span className="score-ring__caption">Score: {Math.round(summary.adjusted)}</span>
               <span className="muted sm">{teamItems.length} Resources Across 3 Pillars</span>
               {metrics.compute && <SpendDelta pct={metrics.compute.spendChangePct} direction={metrics.compute.spendDirection} />}
             </div>
