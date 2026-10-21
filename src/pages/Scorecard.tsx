@@ -3,13 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowsClockwise, BellSimple, CaretRight, Code, Cpu, Database, DownloadSimple, MagnifyingGlass, Sparkle, SquaresFour, UsersThree } from '@miq/fiber-ui/icons';
 import { useGenie } from '../genie/GenieProvider';
 import { ButtonV2, Card, Chip, Dropdown, IconButton, InfoPopover, Input, Pill, ScoreRing, Tabs } from '../fiber';
-import { ITEMS, MONTHS, PILLAR_WEIGHTS, TEAMS, codalBand, findingsFor, grade, itemScore, teamById, teamSummary } from '../data/model';
+import { PILLAR_WEIGHTS, codalBand, findingsFor, grade, itemScore, itemsForTeam, money, teamById, teamFilterOptions, teamSummary } from '../data/model';
 import type { Item, Pillar } from '../data/model';
 import { useStore } from '../state/Store';
-import { TrendChart } from '../components/TrendChart';
-import type { TrendPoint } from '../components/TrendChart';
 import { CompositeInfo, PillarInfo } from '../components/ScoreInfo';
 import { NotifyModal } from '../components/NotifyModal';
+import { ScoreSticker } from '../components/ScoreSticker';
 import { PillarPill, ScoreCell, StatusPill, itemStatus } from '../components/bits';
 
 type PillarTab = 'All' | Pillar;
@@ -27,28 +26,21 @@ const PILLAR_TAB_ICON: Record<PillarTab, ReactNode> = {
   Compute: <Cpu size={16} />,
   Data: <Database size={16} />,
 };
-const TREND_MONTHS = [
-  { label: 'Apr', offset: -14 },
-  { label: 'May', offset: -12 },
-  { label: 'Jun', offset: -10 },
-  { label: 'Jul', offset: -7 },
-  { label: 'Aug', offset: -4 },
-  { label: 'Sep', offset: 0 },
-];
 
-function Trend({ delta }: { delta: number }) {
-  const cls = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
-  const text = delta === 0 ? 'no change' : `${delta > 0 ? '↑' : '↓'} ${delta > 0 ? '+' : '−'}${Math.abs(delta)} pts`;
+function SpendDelta({ pct, direction }: { pct: number; direction?: string | null }) {
+  if (!pct && !direction) return null;
+  const up = direction === 'INCREASE' || pct > 0;
+  const cls = up ? 'down' : 'up';
   return (
     <span className={`delta ${cls}`}>
-      {text}
-      <span className="vs">vs last month</span>
+      {up ? '↑' : '↓'} {Math.abs(Math.round(pct))}% spend
+      <span className="vs">vs prior window</span>
     </span>
   );
 }
 
 export function Scorecard() {
-  const { teamId, setTeamId, month, excepted, stageOf, pendingByFinding, isPastMonth, refresh, refreshing, toast } = useStore();
+  const { teamId, setTeamId, month, excepted, stageOf, pendingByFinding, isPastMonth, refresh, refreshing, toast, dataError } = useStore();
   const navigate = useNavigate();
   const { askAbout } = useGenie();
   const [params, setParams] = useSearchParams();
@@ -64,14 +56,9 @@ export function Scorecard() {
 
   const team = teamById(teamId);
   const summary = teamSummary(teamId, excepted, month.offset);
-  const prevMonth = MONTHS[MONTHS.findIndex(m => m.id === month.id) + 1];
-  const prev = prevMonth ? teamSummary(teamId, excepted, prevMonth.offset) : null;
-  const teamItems = ITEMS.filter(i => i.team === teamId);
+  const teamItems = itemsForTeam(teamId);
   const owners = useMemo(() => [...new Set(teamItems.map(i => i.owner))].sort(), [teamItems]);
-  const trend: TrendPoint[] = TREND_MONTHS.map(m => {
-    const s = teamSummary(teamId, excepted, m.offset);
-    return { label: m.label, values: { Code: s.pillars.Code.adjusted, Compute: s.pillars.Compute.adjusted, Data: s.pillars.Data.adjusted } };
-  });
+  const { metrics } = summary;
 
   const rows = useMemo(
     () =>
@@ -116,8 +103,7 @@ export function Scorecard() {
   const pillarCount = (p: PillarTab) => (p === 'All' ? teamItems.length : teamItems.filter(i => i.pillar === p).length);
 
   const lowest = (['Code', 'Compute', 'Data'] as Pillar[]).reduce((a, b) => (summary.pillars[b].adjusted < summary.pillars[a].adjusted ? b : a));
-  const teamDelta = prev ? summary.adjusted - prev.adjusted : 0;
-  const headline = `${team.short} scores ${summary.adjusted} (grade ${grade(summary.adjusted)})${prev ? `, ${teamDelta === 0 ? 'flat' : `${teamDelta > 0 ? 'up' : 'down'} ${Math.abs(teamDelta)} pts`} vs last month` : ''}. Lowest pillar: ${lowest} at ${summary.pillars[lowest].adjusted}.`;
+  const headline = `${team.short} scores ${summary.adjusted} (grade ${grade(summary.adjusted)}). Lowest pillar: ${lowest} at ${summary.pillars[lowest].adjusted}.`;
 
   return (
     <div className={refreshing ? 'page is-refreshing' : 'page'}>
@@ -126,12 +112,12 @@ export function Scorecard() {
           <span className="page-eyebrow">MiQ · Data platform accountability</span>
           <h1 className="h1">Accountability Scorecard</h1>
           <p className="page-sub">
-            {team.name} · {teamItems.length} line items · owner channel {team.channel}
+            {team.name} · {teamItems.length} line items{team.channel ? ` · owner channel ${team.channel}` : ''}
           </p>
         </div>
         <div className="page-actions">
           <Pill tone="neutral">As of {month.published}</Pill>
-          <Dropdown value={teamId} onChange={setTeamId} label="Team" icon={<UsersThree size={16} />} width={280} options={TEAMS.map(t => ({ value: t.id, label: t.name }))} />
+          <Dropdown value={teamId} onChange={setTeamId} label="Team" icon={<UsersThree size={16} />} width={280} options={teamFilterOptions()} />
           <IconButton label={refreshing ? 'Refreshing…' : 'Refresh scores'} outlined onClick={refresh} disabled={refreshing}>
             <ArrowsClockwise size={18} className={refreshing ? 'spin' : undefined} />
           </IconButton>
@@ -140,6 +126,12 @@ export function Scorecard() {
           </ButtonV2>
         </div>
       </div>
+
+      {dataError && (
+        <Card>
+          <p className="muted">Unable to load scorecard tables: {dataError}. Scores stay empty until Databricks data is available.</p>
+        </Card>
+      )}
 
       <div className="score-grid">
         <Card className="composite">
@@ -152,18 +144,28 @@ export function Scorecard() {
           <div className="composite__body">
             <ScoreRing value={summary.adjusted} size={140} />
             <div className="kpi-stack">
-              <span className="composite__team">{team.short}</span>
+              <span className="composite__name">
+                <span className="composite__team">{team.short}</span>
+                <ScoreSticker score={summary.adjusted} />
+              </span>
               <span className="muted sm">
                 {teamItems.length} line items across 3 pillars
               </span>
-              {prev && <Trend delta={teamDelta} />}
+              {metrics.compute && <SpendDelta pct={metrics.compute.spendChangePct} direction={metrics.compute.spendDirection} />}
             </div>
           </div>
         </Card>
 
         {(['Code', 'Compute', 'Data'] as Pillar[]).map(p => {
           const s = summary.pillars[p];
-          const prevS = prev?.pillars[p];
+          const footer =
+            p === 'Data' && metrics.data
+              ? `${metrics.data.totalAssets} assets · ${codalBand(s.adjusted)}`
+              : p === 'Compute' && metrics.compute
+                ? `${metrics.compute.failedRuns}/${metrics.compute.jobRuns} failed runs · ${money(metrics.compute.spendCurrentUsd)}`
+                : p === 'Code' && metrics.code
+                  ? `${metrics.code.totalFindings} findings · ${metrics.code.notebooksAffected} notebooks`
+                  : `${s.count} items · ${PILLAR_WEIGHTS[p] * 100}% of team score`;
           return (
             <Card key={p} interactive selected={tab === p} onClick={() => setTab(tab === p ? 'All' : p)} className={`kpi-card kpi-card--${p.toLowerCase()}`}>
               <div className="kpi-label">
@@ -177,14 +179,10 @@ export function Scorecard() {
                 <span className={`kpi-grade grade-${grade(s.adjusted).toLowerCase()}`}>{grade(s.adjusted)}</span>
                 <span className="kpi-score">{s.adjusted}</span>
               </div>
-              {prevS && <Trend delta={s.adjusted - prevS.adjusted} />}
               <div className="meter">
                 <span style={{ width: `${s.adjusted}%` }} className={`pillar-fill pillar-fill--${p.toLowerCase()}`} />
               </div>
-              <div className="muted xs">
-                {s.count} items · {PILLAR_WEIGHTS[p] * 100}% of team score
-                {p === 'Data' && ` · ${codalBand(s.adjusted)}`}
-              </div>
+              <div className="muted xs">{footer}</div>
             </Card>
           );
         })}
@@ -192,23 +190,50 @@ export function Scorecard() {
 
       <section className="section">
         <div className="section-head">
-          <h2 className="h2">Team scorecard</h2>
+          <h2 className="h2">Evidence from accountability tables</h2>
           <p>{headline}</p>
         </div>
-        <Card padded={false}>
-          <div className="card-head">
-            <div>
-              <h3 className="card-title">
-                {team.short} pillar trend, {trend[0].label} – {trend[trend.length - 1].label} 2026
-              </h3>
-              <p className="card-sub">Team pillar scores by month</p>
+        <div className="score-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+          <Card>
+            <div className="kpi-label">Data · asset bands</div>
+            <div className="muted sm">
+              {metrics.data
+                ? `${metrics.data.catalogGradeCount} catalog-grade · ${metrics.data.governedCount} governed · ${metrics.data.documentedCount} documented · ${metrics.data.assetsMissingComment} missing comments`
+                : 'No accountability_data_summary rows for this team'}
             </div>
-            <span className="card-head__end">
-              <InfoPopover title="How this chart is built">Each line is the team mean of that pillar's 0–100 score for the month. Six months shown up to the current period.</InfoPopover>
-            </span>
-          </div>
-          <TrendChart points={trend} />
-        </Card>
+            {metrics.data && (
+              <div className="muted xs" style={{ marginTop: 8 }}>
+                Avg ontology {Math.round(metrics.data.avgOntology)} · convention {Math.round(metrics.data.avgConvention)} · lineage {Math.round(metrics.data.avgLineage)}
+              </div>
+            )}
+          </Card>
+          <Card>
+            <div className="kpi-label">Compute · spend window</div>
+            <div className="muted sm">
+              {metrics.compute
+                ? `${money(metrics.compute.spendCurrentUsd)} current · ${money(metrics.compute.spendPreviousUsd)} prior · ${metrics.compute.chronicPastSla} chronic past SLA`
+                : 'No accountability_compute_summary rows for this team'}
+            </div>
+            {metrics.compute?.windowStart && (
+              <div className="muted xs" style={{ marginTop: 8 }}>
+                Window {metrics.compute.windowStart} → {metrics.compute.windowEnd}
+              </div>
+            )}
+          </Card>
+          <Card>
+            <div className="kpi-label">Code · secret findings</div>
+            <div className="muted sm">
+              {metrics.code
+                ? `${metrics.code.highCount} high · ${metrics.code.mediumCount} medium · ${metrics.code.lowCount} low across ${metrics.code.notebooksAffected} notebooks`
+                : 'No accountability_code_summary rows for this team'}
+            </div>
+            {summary.gates.length > 0 && (
+              <div className="muted xs" style={{ marginTop: 8 }}>
+                Gates: {summary.gates.map(g => (g.ok ? '✓' : '✗') + ' ' + g.label.split('·')[0].trim()).join(' · ')}
+              </div>
+            )}
+          </Card>
+        </div>
       </section>
 
       <section className="section">

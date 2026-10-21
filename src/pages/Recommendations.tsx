@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, BellSimple, CheckCircle, Lightning, MagnifyingGlass, TrendUp, XCircle } from '@miq/fiber-ui/icons';
 import { Badge, ButtonV2, Callout, Card, Chip, DataTable, Input, Pill, SidePanel, Stepper, Tabs } from '../fiber';
 import type { Column, Tone } from '../fiber';
-import { ITEMS, PILLAR_WEIGHTS, checkSource, dimDef, findingsFor, itemById, teamById } from '../data/model';
+import { ALL_TEAMS_ID, PILLAR_WEIGHTS, checkSource, dimDef, findingsFor, itemById, itemsForTeam, teamById } from '../data/model';
 import type { Finding, Item, Pillar } from '../data/model';
 import { STAGES, useStore } from '../state/Store';
 import type { Stage } from '../state/Store';
@@ -43,7 +43,7 @@ export function Recommendations() {
 
   const all: Rec[] = useMemo(
     () =>
-      ITEMS.filter(i => i.team === teamId).flatMap(item =>
+      itemsForTeam(teamId).flatMap(item =>
         findingsFor(item)
           .filter(f => f.result !== 'Pass')
           .map(f => {
@@ -134,7 +134,7 @@ export function Recommendations() {
       <div className="page-head">
         <div>
           <h1 className="h1">Recommendations</h1>
-          <div className="muted">Every failing or warning check becomes an action, ranked by how much it would lift {teamById(teamId).short}'s score.</div>
+          <div className="muted">Every failing or warning check becomes an action, ranked by how much it would lift {teamId === ALL_TEAMS_ID ? 'all teams' : `${teamById(teamId).short}'s`} score.</div>
         </div>
       </div>
 
@@ -282,7 +282,7 @@ export function Recommendations() {
                   {current.evidence}
                 </div>
                 <div className="muted xs" style={{ marginTop: 8 }}>
-                  Source: {checkSource(current.dim, Number(current.id.slice(-1)))}
+                  Source: {checkSource(current.dim, 0, current.item, current)}
                 </div>
               </Card>
             </div>

@@ -195,7 +195,7 @@ export function AdminReview() {
               <div className="evidence">
                 <span className="muted xs">Evidence</span>
                 <div>{impact.finding.evidence}</div>
-                <span className="muted xs">Source: {checkSource(impact.finding.dim, Number(impact.finding.id.slice(-1)))}</span>
+                <span className="muted xs">Source: {checkSource(impact.finding.dim, 0, impact.item, impact.finding)}</span>
               </div>
             </Card>
 

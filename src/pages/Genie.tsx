@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowSquareOut, Sparkle, Trash, X } from '@miq/fiber-ui/icons';
 import { AIPrompt, Badge, ButtonV2, Card, IconButton, ScoreRing } from '../fiber';
-import { ITEMS, grade, itemScore, teamById, teamSummary, toneOf } from '../data/model';
+import { grade, itemScore, itemsForTeam, teamById, teamSummary, toneOf } from '../data/model';
 import type { Pillar } from '../data/model';
 import { useStore } from '../state/Store';
 import { Toolbar } from '../components/Toolbar';
@@ -17,7 +17,7 @@ export function Genie() {
   const navigate = useNavigate();
   const [input, setInput] = useState('');
   const team = teamById(teamId);
-  const items = ITEMS.filter(i => i.team === teamId);
+  const items = itemsForTeam(teamId);
   const summary = teamSummary(teamId, excepted, month.offset);
   const label = contextLabel(context, teamId);
 

@@ -5,6 +5,4 @@ command:
 
 env:
   - name: DATABRICKS_WAREHOUSE_ID
-    valueFrom: sql-warehouse
-  - name: NPMRC
-    valueFrom: npm-rc
+    value: 8d04a00a80f4c77e

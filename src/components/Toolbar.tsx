@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ArrowsClockwise, ClockCounterClockwise, DownloadSimple, LockSimple, Sparkle, UsersThree } from '@miq/fiber-ui/icons';
 import { ButtonV2, Dropdown, IconButton, Pill } from '../fiber';
-import { TEAMS } from '../data/model';
+import { teamFilterOptions } from '../data/model';
 import { useStore } from '../state/Store';
 import { useGenie } from '../genie/GenieProvider';
 
 function ago(ts: number) {
+  if (!ts) return 'never';
   const mins = Math.round((Date.now() - ts) / 60000);
   if (mins < 1) return 'just now';
   if (mins < 60) return `${mins} min ago`;
@@ -29,7 +30,7 @@ export function Toolbar({ compact, children }: { compact?: boolean; children?: R
           label="Team"
           icon={<UsersThree size={16} />}
           width={compact ? 200 : 280}
-          options={TEAMS.map(t => ({ value: t.id, label: compact ? t.short : t.name }))}
+          options={teamFilterOptions(compact)}
         />
         {isPastMonth ? (
           <Pill tone="warning" icon={<ClockCounterClockwise size={14} />}>

@@ -117,6 +117,32 @@ a { color: var(--f-brand-500); text-decoration: none; }
 .kpi-card--data { --card-accent: var(--f-pillar-data); }
 .composite__body { display: grid; grid-template-columns: 148px minmax(0, 1fr); align-items: center; column-gap: 20px; row-gap: 8px; margin: 8px 0 0; }
 .composite__team { font-size: 22px; line-height: 28px; font-weight: 700; color: var(--f-brand-800); }
+.composite__name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.score-sticker { width: 64px; height: 64px; flex: none; display: inline-grid; place-items: center; border: 2px solid #241428; border-radius: 18px; background: #fff; box-shadow: 3px 3px 0 var(--f-brand-100); transform: rotate(-3deg); cursor: default; }
+.score-sticker svg { width: 56px; height: 56px; overflow: visible; }
+.score-sticker--a { background: #f3fff7; }
+.score-sticker--b { background: #f7fff9; transform: rotate(2deg); }
+.score-sticker--c { background: #fffbeb; transform: none; }
+.score-sticker--d { background: #fff6f1; }
+.score-sticker--e { background: #fff5f7; transform: rotate(2deg); }
+.score-sticker__buddy, .score-sticker__prop, .score-sticker__extra, .score-sticker__spark { transform-box: fill-box; transform-origin: center; }
+.score-sticker__spark, .score-sticker__extra { opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .score-sticker.is-playing .score-sticker__buddy, .score-sticker:hover .score-sticker__buddy { animation: sticker-hop 1.15s cubic-bezier(.2, 1.4, .4, 1); }
+  .score-sticker.is-playing .score-sticker__prop, .score-sticker:hover .score-sticker__prop { animation: sticker-tip 1.15s ease; }
+  .score-sticker.is-playing .score-sticker__spark, .score-sticker:hover .score-sticker__spark { animation: sticker-burst 1.15s ease forwards; }
+  .score-sticker.is-playing .score-sticker__extra, .score-sticker:hover .score-sticker__extra { animation: sticker-rise 1.15s ease forwards; }
+  .score-sticker--c.is-playing .score-sticker__prop, .score-sticker--c:hover .score-sticker__prop { animation: sticker-wink 1.15s ease; }
+  .score-sticker--d.is-playing .score-sticker__buddy, .score-sticker--d:hover .score-sticker__buddy { animation: sticker-lean 1.15s ease; }
+  .score-sticker--e.is-playing .score-sticker__prop, .score-sticker--e:hover .score-sticker__prop { animation: sticker-bob 1.15s ease; }
+}
+@keyframes sticker-hop { 0% { transform: translateY(10px) scale(.92); } 50% { transform: translateY(-8px) scale(1.05); } 100% { transform: none; } }
+@keyframes sticker-tip { 50% { transform: rotate(10deg); } }
+@keyframes sticker-burst { 0% { opacity: 0; transform: scale(.4); } 40% { opacity: 1; } 100% { opacity: 1; transform: translate(var(--x), var(--y)) scale(1); } }
+@keyframes sticker-rise { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(-4px); } }
+@keyframes sticker-wink { 45%, 62% { transform: scaleY(.12); } }
+@keyframes sticker-lean { 50% { transform: translateY(5px) rotate(-6deg); } }
+@keyframes sticker-bob { 50% { transform: translateY(-8px) rotate(8deg); } }
 .kpi-stack { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; min-width: 0; }
 .kpi-stack .delta { margin-top: 4px; }
 .kpi-card { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; height: 100%; padding-top: 4px; }

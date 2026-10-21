@@ -205,7 +205,7 @@ export function LineItem() {
           <div>
             <div className="h2">Findings</div>
             <div className="muted sm">
-              Evidence from {Array.from(new Set(all.filter(f => !dim || f.dim === dim).map(f => checkSource(f.dim, Number(f.id.slice(-1)))))).slice(0, 3).join(', ')}
+              Evidence from {Array.from(new Set(all.filter(f => !dim || f.dim === dim).map(f => checkSource(f.dim, 0, item, f)))).slice(0, 3).join(', ')}
             </div>
           </div>
           <div className="row-gap">

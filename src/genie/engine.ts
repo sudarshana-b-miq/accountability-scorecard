@@ -1,4 +1,4 @@
-import { DIMS, ITEMS, PILLAR_WEIGHTS, checkSource, dimDef, dimScores, findingsFor, grade, itemById, itemScore, teamById, teamSummary } from '../data/model';
+import { ALL_TEAMS_ID, DIMS, PILLAR_WEIGHTS, checkSource, dimDef, dimScores, findingsFor, grade, itemById, itemScore, itemsForTeam, teamById, teamSummary } from '../data/model';
 import type { Pillar } from '../data/model';
 import type { ExceptionRequest } from '../state/Store';
 
@@ -54,7 +54,7 @@ function itemAnswer(itemId: string, s: string, input: AnswerInput): Answer {
   const score = itemScore(item, excepted, offset);
   const open = findingsFor(item).filter(f => f.result !== 'Pass' && !excepted.has(f.id));
   const dims = dimScores(item, excepted);
-  const sources = Array.from(new Set(open.map(f => checkSource(f.dim, Number(f.id.slice(-1)))))).slice(0, 4);
+  const sources = Array.from(new Set(open.map(f => checkSource(f.dim, 0, item, f)))).slice(0, 4);
 
   if (s.includes('exception')) {
     const list = exceptions.filter(e => e.itemId === item.id);
@@ -98,9 +98,11 @@ export function answerFor(input: AnswerInput): Answer {
 
   const team = teamById(teamId);
   const summary = teamSummary(teamId, excepted, offset);
-  const items = ITEMS.filter(i => i.team === teamId && (context.kind !== 'pillar' || i.pillar === context.pillar));
+  const teamItems = itemsForTeam(teamId);
+  const items = teamItems.filter(i => context.kind !== 'pillar' || i.pillar === context.pillar);
   const open = items.flatMap(i => findingsFor(i).filter(f => f.result !== 'Pass' && !excepted.has(f.id)).map(f => ({ f, i })));
   const is = (words: string[], target: GenieScope) => words.some(w => s.includes(w)) || (scope === target && !/exception|fix|top|description/.test(s));
+  const teamSqlFilter = teamId === ALL_TEAMS_ID ? '1=1' : `team = '${team.id}'`;
 
   if (is(['exception', 'pending', 'approval'], 'exceptions')) {
     const pend = exceptions.filter(e => e.status === 'pending');
@@ -119,17 +121,17 @@ export function answerFor(input: AnswerInput): Answer {
     return {
       text: `These three fixes give the biggest lift, about +${round1(top.reduce((a, b) => a + b.gain, 0))} points on the team score:`,
       table: { head: ['Fix', 'Line item', 'Gain'], rows: top.map(t => [t.f.recommendation, t.i.name, `+${t.gain}`]) },
-      sql: `SELECT recommendation, item_name, team_gain\nFROM scorecard.recommendations\nWHERE team = '${team.id}' AND status = 'open'\nORDER BY team_gain DESC\nLIMIT 3;`,
+      sql: `SELECT recommendation, item_name, team_gain\nFROM scorecard.recommendations\nWHERE ${teamSqlFilter} AND status = 'open'\nORDER BY team_gain DESC\nLIMIT 3;`,
       links: [{ label: 'All recommendations', to: '/recommendations' }],
       sources: ['scorecard.recommendations', 'system.access.table_lineage'],
     };
   }
   if (is(['description', 'ontology', 'document'], 'findings')) {
-    const rows = ITEMS.filter(i => i.team === teamId && i.pillar === 'Data' && (i.dims.O ?? 100) < 60);
+    const rows = teamItems.filter(i => i.pillar === 'Data' && (i.dims.O ?? 100) < 60);
     return {
       text: `${rows.length} tables score below 60 on Ontology, meaning the table or its most-used columns lack descriptions of at least 50 characters.`,
       table: { head: ['Table', 'Ontology', 'Owner'], rows: rows.map(i => [i.name, i.dims.O, i.owner]) },
-      sql: `SELECT table_name, ontology_score, owner\nFROM scorecard.data_dimensions\nWHERE team = '${team.id}' AND ontology_score < 60;`,
+      sql: `SELECT table_name, ontology_score, owner\nFROM scorecard.data_dimensions\nWHERE ${teamSqlFilter} AND ontology_score < 60;`,
       sources: ['information_schema.tables', 'information_schema.columns', 'system.query.history'],
     };
   }
@@ -146,7 +148,7 @@ export function answerFor(input: AnswerInput): Answer {
     return {
       text: `${subject} is at ${value} (grade ${grade(value)}) for ${monthLabel}. ${context.kind === 'team' ? `Data is weighted 50%, so low Data scores, mainly Ontology, are the biggest drag.${summary.cap < 100 ? ` A hard gate also caps the grade at ${grade(summary.cap)}.` : ''}` : ''} The lowest line items are:`,
       table: { head: ['Line item', 'Pillar', 'Score', 'Biggest gap'], rows: worst.map(i => [i.name, i.pillar, itemScore(i, excepted, offset), findingsFor(i)[0].check]) },
-      sql: `SELECT item_name, pillar, score, top_gap\nFROM scorecard.line_items\nWHERE team = '${team.id}' AND month = '${monthId}'\nORDER BY score ASC\nLIMIT 3;`,
+      sql: `SELECT item_name, pillar, score, top_gap\nFROM scorecard.line_items\nWHERE ${teamSqlFilter} AND month = '${monthId}'\nORDER BY score ASC\nLIMIT 3;`,
       links: worst.map(i => ({ label: i.name, to: `/item/${i.id}` })),
       sources: ['scorecard.line_items', 'system.billing.usage', 'system.lakeflow.job_run_timeline'],
     };

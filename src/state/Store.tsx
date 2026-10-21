@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle, Info, PaperPlaneTilt, WarningCircle } from '@miq/fiber-ui/icons';
 import type { Tone } from '../fiber';
-import { MONTHS, TEAMS, findingById, itemById, replaceScorecardData, type LiveScorecard } from '../data/model';
+import { ALL_TEAMS_ID, MONTHS, TEAMS, findingById, itemById, replaceScorecardData, type LiveScorecard } from '../data/model';
 
 export type Stage = 'Detected' | 'Notified' | 'Accepted' | 'Implemented' | 'Verified';
 export const STAGES: Stage[] = ['Detected', 'Notified', 'Accepted', 'Implemented', 'Verified'];
@@ -44,76 +44,6 @@ interface ToastMsg {
 
 const CURRENT_USER = { name: 'sudarshana.b', initials: 'SB', isAdmin: true };
 
-const SEED_EXCEPTIONS: ExceptionRequest[] = [
-  {
-    id: 'EXC-1039',
-    itemId: 'ingest_raw_events',
-    findingId: 'ingest_raw_events:L1',
-    reason: 'Not applicable',
-    comment: 'These S3 paths are vendor drop zones that are read once by Auto Loader. A UC external location is being set up by the platform team.',
-    durationDays: 180,
-    status: 'pending',
-    requestedBy: 'arjun.n',
-    requestedAt: '20 Oct 2026, 16:05',
-  },
-  {
-    id: 'EXC-1037',
-    itemId: 'core_audience_dim',
-    findingId: 'core_audience_dim:C0',
-    reason: 'False positive',
-    comment: 'The flagged columns are vendor-supplied names we must keep for contract compatibility. They are aliased to snake_case in the gold view.',
-    durationDays: 30,
-    status: 'pending',
-    requestedBy: 'li.wei',
-    requestedAt: '19 Oct 2026, 11:20',
-  },
-  {
-    id: 'EXC-1031',
-    itemId: 'databricks_usage_cost_daily',
-    findingId: 'databricks_usage_cost_daily:O0',
-    reason: 'Planned fix',
-    comment: 'Descriptions are being generated from the billing glossary in ticket DP-2190, due end of October.',
-    durationDays: 90,
-    status: 'approved',
-    requestedBy: 'meera.r',
-    requestedAt: '02 Oct 2026, 09:12',
-    decidedBy: 'sudarshana.b',
-    decidedAt: '03 Oct 2026, 10:40',
-    adminComment: 'Approved for 90 days. Link DP-2190 when it closes.',
-  },
-  {
-    id: 'EXC-1028',
-    itemId: 'yahoo_campaigns',
-    findingId: 'yahoo_campaigns:A0',
-    reason: 'Accepted risk',
-    comment: 'The column only contains hashed emails, so masking is not required.',
-    durationDays: 90,
-    status: 'rejected',
-    requestedBy: 'rahul.k',
-    requestedAt: '28 Sep 2026, 14:00',
-    decidedBy: 'sudarshana.b',
-    decidedAt: '29 Sep 2026, 09:30',
-    adminComment: 'Hashed emails are still personal data under our policy. Please apply the standard mask.',
-  },
-];
-
-const SEED_NOTICES: Notice[] = [
-  { id: 'n1', kind: 'approval', title: 'EXC-1039 awaits your review', body: 'Upstream lineage on ingest_raw_events · requested by arjun.n', time: '18 h ago', read: false, link: '/admin?request=EXC-1039' },
-  { id: 'n2', kind: 'approval', title: 'EXC-1037 awaits your review', body: 'Naming on core_audience_dim · requested by li.wei', time: '2 days ago', read: false, link: '/admin?request=EXC-1037' },
-  { id: 'n3', kind: 'approved', title: 'Exception approved', body: 'Databricks_Usage_Cost_Daily · description finding excluded until 01 Jan 2027', time: '18 days ago', read: true, link: '/item/databricks_usage_cost_daily' },
-  { id: 'n4', kind: 'published', title: 'September scorecard published', body: 'Monthly snapshot is locked and available for all teams', time: '01 Oct', read: true, link: '/' },
-];
-
-const SEED_STAGES: Record<string, Stage> = {
-  'ani_daily_ingest_job:R0': 'Notified',
-  'ani_reporting:S0': 'Accepted',
-  'ani_shared_cluster:E0': 'Implemented',
-  'denormalized_data:C0': 'Verified',
-  'yahoo_campaigns:L0': 'Accepted',
-  'client_reporting_data:O1': 'Notified',
-  'core_models:S0': 'Notified',
-};
-
 interface StoreValue {
   user: typeof CURRENT_USER;
   teamId: string;
@@ -154,17 +84,17 @@ const nowLabel = () =>
   new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', ',');
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [teamId, setTeamId] = useState('ani');
+  const [teamId, setTeamId] = useState(ALL_TEAMS_ID);
   const [monthId, setMonthId] = useState(MONTHS[0].id);
-  const [exceptions, setExceptions] = useState<ExceptionRequest[]>(SEED_EXCEPTIONS);
-  const [notices, setNotices] = useState<Notice[]>(SEED_NOTICES);
-  const [stages, setStages] = useState<Record<string, Stage>>(SEED_STAGES);
+  const [exceptions, setExceptions] = useState<ExceptionRequest[]>([]);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [stages, setStages] = useState<Record<string, Stage>>({});
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshedAt, setRefreshedAt] = useState(Date.now() - 2 * 3600 * 1000);
+  const [refreshing, setRefreshing] = useState(true);
+  const [refreshedAt, setRefreshedAt] = useState(0);
   const [dataError, setDataError] = useState<string>();
   const hasLiveData = useRef(false);
-  const nextExc = useRef(1042);
+  const nextExc = useRef(1001);
   const nextId = useRef(1);
 
   const toast = useCallback((t: Omit<ToastMsg, 'id'>) => {
@@ -251,12 +181,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json() as LiveScorecard;
       if (!data.teams.length) throw new Error('No active teams were returned');
       replaceScorecardData(data);
-      setTeamId(current => TEAMS.some(team => team.id === current) ? current : data.teams[0].id);
-      if (!hasLiveData.current) {
-        setExceptions([]);
-        setStages({});
-        setNotices([]);
-      }
+      setTeamId(current =>
+        current === ALL_TEAMS_ID || TEAMS.some(team => team.id === current) ? current : ALL_TEAMS_ID,
+      );
       hasLiveData.current = true;
       setDataError(undefined);
       setRefreshedAt(data.refreshedAt || Date.now());
@@ -282,7 +209,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     void loadLiveData(true);
   }, [loadLiveData]);
 
-  const month = MONTHS.find(m => m.id === monthId) ?? MONTHS[0];
+  const month = { ...(MONTHS.find(m => m.id === monthId) ?? MONTHS[0]) };
 
   const value: StoreValue = {
     user: CURRENT_USER,
@@ -291,7 +218,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     monthId,
     setMonthId,
     month,
-    isPastMonth: month.offset !== 0,
+    isPastMonth: false,
     exceptions,
     excepted,
     pendingByFinding,

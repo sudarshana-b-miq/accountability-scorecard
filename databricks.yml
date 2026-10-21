@@ -7,18 +7,6 @@ resources:
       name: accountability-scorecard
       description: MiQ data platform accountability scorecard
       source_code_path: .
-      resources:
-        - name: sql-warehouse
-          description: SQL warehouse used to read accountability scorecard data
-          sql_warehouse:
-            id: 8d04a00a80f4c77e
-            permission: CAN_USE
-        - name: npm-rc
-          description: Private npm registry configuration for Fiber UI
-          secret:
-            scope: accountability-scorecard
-            key: npm-rc
-            permission: READ
 
 targets:
   dev:
