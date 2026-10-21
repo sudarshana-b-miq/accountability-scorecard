@@ -133,17 +133,15 @@ export function Scorecard() {
           <div className="composite__body">
             <ScoreRing value={summary.adjusted} size={176} caption={false} />
             <div className="composite__side">
-              <div className="kpi-stack">
+              <div className="composite__name">
                 <span className="composite__team">{team.short}</span>
-                <span className="score-ring__caption">
-                  <span>Score:</span> {Math.round(summary.adjusted)}
-                </span>
-                <span className="muted sm">
-                  {teamItems.length} Resources Across 3 Pillars
-                </span>
-                {metrics.compute && <SpendDelta pct={metrics.compute.spendChangePct} direction={metrics.compute.spendDirection} />}
+                <ScoreSticker score={summary.adjusted} />
               </div>
-              <ScoreSticker score={summary.adjusted} />
+              <span className="score-ring__caption">
+                <span>Score:</span> {Math.round(summary.adjusted)}
+              </span>
+              <span className="muted sm">{teamItems.length} Resources Across 3 Pillars</span>
+              {metrics.compute && <SpendDelta pct={metrics.compute.spendChangePct} direction={metrics.compute.spendDirection} />}
             </div>
           </div>
         </Card>

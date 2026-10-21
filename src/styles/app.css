@@ -115,11 +115,12 @@ a { color: var(--f-brand-500); text-decoration: none; }
 .kpi-card--code { --card-accent: var(--f-pillar-code); }
 .kpi-card--compute { --card-accent: var(--f-pillar-compute); }
 .kpi-card--data { --card-accent: var(--f-pillar-data); }
-.composite__body { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 20px; row-gap: 8px; margin: 4px 0 0; }
-.composite__side { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.composite__body { display: flex; align-items: center; gap: 28px; margin: 4px 0 0; }
+.composite__side { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.composite__name { display: inline-flex; align-items: center; gap: 12px; }
 .composite__team { font-size: 22px; line-height: 28px; font-weight: 700; color: var(--f-brand-800); }
-.score-sticker { width: 64px; height: 64px; flex: none; display: grid; place-items: center; border: 2px solid #241428; border-radius: 18px; background: #fff; box-shadow: 3px 3px 0 var(--f-brand-100); transform: rotate(-3deg); cursor: default; overflow: hidden; }
-.score-sticker svg { width: 52px; height: 52px; display: block; }
+.score-sticker { width: 64px; height: 64px; flex: none; display: grid; place-items: center; border: 2px solid #241428; border-radius: 18px; background: #fff; box-shadow: 3px 3px 0 var(--f-brand-100); cursor: default; overflow: hidden; }
+.score-sticker svg { width: 58px; height: 58px; display: block; }
 .score-sticker--a { background: #f3fff7; }
 .score-sticker--b { background: #f7fff9; transform: rotate(2deg); }
 .score-sticker--c { background: #fffbeb; transform: none; }
@@ -151,7 +152,7 @@ a { color: var(--f-brand-500); text-decoration: none; }
 .kpi-card { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; height: 100%; padding-top: 4px; }
 .kpi-label { display: flex; align-items: center; gap: 8px; width: 100%; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; color: var(--f-n-700); }
 .kpi-label__end { margin-left: auto; }
-.kpi-facts { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: auto; }
+.kpi-facts { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .kpi-fact { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 12px; line-height: 16px; color: var(--f-n-600); }
 .kpi-fact b { color: var(--f-n-900); font-weight: 600; font-variant-numeric: tabular-nums; }
 .kpi-figure { display: flex; align-items: baseline; gap: 8px; }

@@ -118,7 +118,7 @@ export function ScoreSticker({ score }: { score: number }) {
 
   return (
     <span className={`score-sticker score-sticker--${letter.toLowerCase()}${playing ? ' is-playing' : ''}`} title={LABELS[letter]}>
-      <svg viewBox="0 0 120 120" role="img" aria-label={`${LABELS[letter]}, grade ${letter}`}>
+      <svg viewBox="18 16 84 84" role="img" aria-label={`${LABELS[letter]}, grade ${letter}`}>
         <Face letter={letter} />
       </svg>
     </span>
