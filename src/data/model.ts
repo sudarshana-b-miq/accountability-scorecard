@@ -184,7 +184,7 @@ export const ALL_TEAM: Team = {
 export const MONTHS = [{ id: 'current', label: 'Current period', offset: 0, published: PUBLISHED_LABEL }];
 
 export function itemsForTeam(teamId: string) {
-  return teamId === ALL_TEAMS_ID ? ITEMS : ITEMS.filter(i => i.team === teamId);
+  return teamId === ALL_TEAMS_ID ? [...ITEMS] : ITEMS.filter(i => i.team === teamId);
 }
 
 export function teamsInScope(teamId: string) {

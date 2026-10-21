@@ -272,11 +272,13 @@ export function ScoreRing({ value, size = 196, label }: { value: number; size?: 
   const letter = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 40 ? 'D' : 'E';
   const gauge = GAUGE_COLOR[letter];
   const width = size;
-  const height = Math.round(size * 0.68);
+  const pad = 16;
+  const radius = width / 2 - pad - 6;
   const cx = width / 2;
-  const cy = height - 6;
-  const radius = size * 0.4;
-  const [nx, ny] = gaugePoint(cx, cy, radius - 16, score / 100);
+  const cy = pad + radius + 6;
+  const letterSize = size > 150 ? 28 : 22;
+  const height = Math.round(cy + letterSize + 24);
+  const [nx, ny] = gaugePoint(cx, cy, radius - 18, score / 100);
   const ticks = [0, 0.25, 0.5, 0.75, 1];
   return (
     <div className="score-ring" style={{ width, height }}>
@@ -290,10 +292,10 @@ export function ScoreRing({ value, size = 196, label }: { value: number; size?: 
         })}
         <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={gauge.label} strokeWidth={3} strokeLinecap="round" />
         <circle cx={cx} cy={cy} r={5} fill={gauge.arc} stroke="#fff" strokeWidth={2} />
-        <text x={cx} y={cy - 28} textAnchor="middle" fill={gauge.label} fontSize={size > 150 ? 28 : 22} fontWeight={700} fontFamily="DM Sans, sans-serif">
+        <text x={cx} y={cy + letterSize + 4} textAnchor="middle" fill={gauge.label} fontSize={letterSize} fontWeight={700} fontFamily="DM Sans, sans-serif">
           {letter}
         </text>
-        <text x={cx} y={cy - 10} textAnchor="middle" fill="#717180" fontSize={12} fontWeight={600} fontFamily="DM Sans, sans-serif">
+        <text x={cx} y={cy + letterSize + 20} textAnchor="middle" fill="#717180" fontSize={12} fontWeight={600} fontFamily="DM Sans, sans-serif">
           {score}
         </text>
       </svg>
