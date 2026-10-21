@@ -121,10 +121,10 @@ test('queries with the forwarded user token', async () => {
   assert.equal(seenToken, 'user-token');
 });
 
-test('submits the Slack notebook as a one-time serverless run', async () => {
+test('posts the alert directly to Slack', async () => {
   const { triggerAlert } = await import('./alerts.js');
   const statements = [];
-  let submitted;
+  const calls = [];
   const result = await triggerAlert({ pillar: 'Compute', teamId: 'T-0001' }, {}, {
     query: async statement => {
       statements.push(statement);
@@ -143,48 +143,21 @@ test('submits the Slack notebook as a one-time serverless run', async () => {
         trigger_type: 'CRON',
       }];
     },
-    submitRun: async payload => {
-      submitted = payload;
-      return { run_id: 123 };
+    slackCall: async (method, request) => {
+      calls.push({ method, request });
+      if (method === 'users.lookupByEmail') return { ok: true, user: { id: 'U123' } };
+      return { ok: true };
     },
   });
 
-  assert.equal(result.runId, 123);
+  assert.equal(result.sent, 1);
   assert.equal(result.channel, 'C123');
+  assert.match(result.summary, /Posted to ANI on Slack/);
   assert.match(statements.join('\n'), /long_failing_jobs_inventory/);
-  assert.equal(submitted.tasks[0].notebook_task.notebook_path, '/Users/sudarshana.b@miqdigital.com/accountability_scorecard_slack');
-  assert.equal(submitted.tasks[0].notebook_task.base_parameters.channel, 'C123');
-  assert.match(submitted.tasks[0].notebook_task.base_parameters.messages, /nightly/);
-  assert.equal('new_cluster' in submitted.tasks[0], false);
-});
-
-test('submits with the stored workspace token and does not mint a foreign oauth token', async () => {
-  const original = global.fetch;
-  const calls = [];
-  global.fetch = async (url, init) => {
-    calls.push({ url: String(url), authorization: init?.headers?.Authorization });
-    return new Response(JSON.stringify({ run_id: 55 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  };
-  try {
-    const { triggerAlert } = await import('./alerts.js');
-    const result = await triggerAlert({ pillar: 'Code', teamId: 'T-0001' }, {
-      ALERT_WORKSPACE_TOKEN: 'stored-token',
-      ALERT_WORKSPACE_HOST: 'miqdigital-eng-data-platform.cloud.databricks.com',
-    }, {
-      query: async statement => {
-        if (statement.includes('miq_teams')) return [{ team_name: 'ANI', slack_channel_id: 'C123', slack_channel_name: 'ani' }];
-        if (statement.includes('miq_team_members')) return [{ member_email: 'a@miqdigital.com' }];
-        return [];
-      },
-    });
-    assert.equal(result.runId, 55);
-    assert.equal(calls.length, 1);
-    assert.match(calls[0].url, /\/api\/2\.2\/jobs\/runs\/submit$/);
-    assert.equal(calls[0].authorization, 'Bearer stored-token');
-    assert.doesNotMatch(calls[0].url, /oidc\/v1\/token/);
-  } finally {
-    global.fetch = original;
-  }
+  assert.equal(calls.at(-1).method, 'chat.postMessage');
+  assert.equal(calls.at(-1).request.json.channel, 'C123');
+  assert.match(JSON.stringify(calls.at(-1).request.json.blocks), /nightly/);
+  assert.match(JSON.stringify(calls.at(-1).request.json.blocks), /<@U123>/);
 });
 
 test('rejects a pillar the notifier does not cover', async () => {

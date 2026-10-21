@@ -6,11 +6,7 @@ command:
 env:
   - name: DATABRICKS_WAREHOUSE_ID
     value: 8d04a00a80f4c77e
-  - name: ALERT_WORKSPACE_HOST
-    value: miqdigital-eng-data-platform.cloud.databricks.com
-  - name: ALERT_NOTEBOOK_PATH
-    value: /Users/sudarshana.b@miqdigital.com/accountability_scorecard_slack
-  - name: ALERT_TOKEN_SECRET_SCOPE
-    value: scorecard-alerts
-  - name: ALERT_TOKEN_SECRET_KEY
-    value: eng_workspace_token
+  - name: SLACK_SECRET_SCOPE
+    value: flexible_job
+  - name: SLACK_SECRET_KEY
+    value: slack_bot_token
