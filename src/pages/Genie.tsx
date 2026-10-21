@@ -70,7 +70,7 @@ export function Genie() {
 
         <div className="genie__side">
           <Card className="row-gap" style={{ gap: 20 }}>
-            <ScoreRing value={summary.adjusted} size={132} />
+            <ScoreRing value={summary.adjusted} size={132} caption={false} />
             <div>
               <div className="muted sm">{team.name}</div>
               <div className="h1" style={{ margin: '2px 0 6px' }}>

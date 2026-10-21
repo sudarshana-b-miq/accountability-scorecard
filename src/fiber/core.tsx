@@ -268,30 +268,26 @@ function gaugeArc(cx: number, cy: number, radius: number, from: number, to: numb
   return `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2}`;
 }
 
-export function ScoreRing({ value, size = 196, label }: { value: number; size?: number; tone?: Tone; label?: string }) {
+export function ScoreRing({ value, size = 196, label, caption = true }: { value: number; size?: number; tone?: Tone; label?: string; caption?: boolean }) {
   const score = Math.max(0, Math.min(100, Math.round(value)));
   const letter = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 40 ? 'D' : 'E';
   const gauge = GAUGE_COLOR[letter];
-  const stroke = Math.max(18, Math.round(size * 0.16));
+  const stroke = Math.max(10, Math.round(size * 0.1));
   const inset = stroke / 2 + 2;
   const radius = (size - inset * 2) / 2;
   const cx = size / 2;
   const cy = inset + radius;
   const height = Math.round(cy + stroke / 2 + 2);
-  const gradeSize = Math.round(size * 0.26);
-  const scoreSize = Math.round(size * 0.13);
   return (
-    <div className="score-ring" style={{ width: size, height }}>
+    <div className="score-ring" style={{ height }}>
       <svg width={size} height={height} viewBox={`0 0 ${size} ${height}`} role="img" aria-label={label ?? `Grade ${letter}, score ${score}`}>
         <path d={gaugeArc(cx, cy, radius, 0, 1)} fill="none" stroke="#ebe6f0" strokeWidth={stroke} strokeLinecap="round" />
         {score > 0 && <path d={gaugeArc(cx, cy, radius, 0, score / 100)} fill="none" stroke={gauge.arc} strokeWidth={stroke} strokeLinecap="round" />}
-        <text x={cx - scoreSize * 0.85} y={cy - radius * 0.22} textAnchor="middle" dominantBaseline="middle" fontFamily="DM Sans, sans-serif" fontSize={gradeSize} fontWeight={700} fill={gauge.label}>
+        <text x={cx} y={cy - radius * 0.28} textAnchor="middle" dominantBaseline="middle" fontFamily="DM Sans, sans-serif" fontSize={Math.round(size * 0.3)} fontWeight={700} fill={gauge.label}>
           {letter}
         </text>
-        <text x={cx + gradeSize * 0.42} y={cy - radius * 0.22} textAnchor="middle" dominantBaseline="middle" fontFamily="DM Sans, sans-serif" fontSize={scoreSize} fontWeight={600} fill="#5c5c6b">
-          {score}
-        </text>
       </svg>
+      {caption && <span className="score-ring__caption"><span>Score:</span> {score}</span>}
     </div>
   );
 }
