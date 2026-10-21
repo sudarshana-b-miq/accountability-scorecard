@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from './components/AppShell';
 import { Scorecard } from './pages/Scorecard';
+import { PillarView } from './pages/PillarView';
 import { LineItem } from './pages/LineItem';
 import { Recommendations } from './pages/Recommendations';
 import { Genie } from './pages/Genie';
@@ -22,6 +23,9 @@ export function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<Scorecard />} />
+          <Route path="code" element={<PillarView pillar="Code" />} />
+          <Route path="compute" element={<PillarView pillar="Compute" />} />
+          <Route path="data" element={<PillarView pillar="Data" />} />
           <Route path="item/:id" element={<LineItem />} />
           <Route path="recommendations" element={<Recommendations />} />
           <Route path="genie" element={<Genie />} />

@@ -7,10 +7,10 @@ import { GenieDock } from '../genie/GenieDock';
 import { HelpInfo } from './ScoreInfo';
 
 const NAV = [
-  { label: 'Home', pillar: null },
-  { label: 'Code', pillar: 'Code' },
-  { label: 'Compute', pillar: 'Compute' },
-  { label: 'Data', pillar: 'Data' },
+  { label: 'Home', to: '/' },
+  { label: 'Code', to: '/code' },
+  { label: 'Compute', to: '/compute' },
+  { label: 'Data', to: '/data' },
 ];
 
 function HelpMenu() {
@@ -34,8 +34,7 @@ function HelpMenu() {
 
 export function AppShell() {
   const { user } = useStore();
-  const { pathname, search } = useLocation();
-  const activePillar = pathname === '/' ? new URLSearchParams(search).get('pillar') : undefined;
+  const { pathname } = useLocation();
   return (
     <div className="app">
       <header className="app-header">
@@ -46,9 +45,9 @@ export function AppShell() {
         </Link>
         <nav className="app-nav">
           {NAV.map(n => {
-            const active = activePillar !== undefined && activePillar === n.pillar;
+            const active = n.to === '/' ? pathname === '/' : pathname.startsWith(n.to);
             return (
-              <Link key={n.label} to={n.pillar ? `/?pillar=${n.pillar}` : '/'} className={cx('app-nav__link', active && 'is-active')} aria-current={active ? 'page' : undefined}>
+              <Link key={n.label} to={n.to} className={cx('app-nav__link', active && 'is-active')} aria-current={active ? 'page' : undefined}>
                 {n.label}
               </Link>
             );
