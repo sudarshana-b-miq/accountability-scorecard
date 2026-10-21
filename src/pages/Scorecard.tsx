@@ -131,11 +131,14 @@ export function Scorecard() {
             </InfoPopover>
           </div>
           <div className="composite__body">
-            <ScoreRing value={summary.adjusted} size={132} />
+            <ScoreRing value={summary.adjusted} size={176} caption={false} />
             <div className="kpi-stack">
               <span className="composite__name">
                 <span className="composite__team">{team.short}</span>
                 <ScoreSticker score={summary.adjusted} />
+              </span>
+              <span className="score-ring__caption">
+                <span>Score:</span> {Math.round(summary.adjusted)}
               </span>
               <span className="muted sm">
                 {teamItems.length} Resources Across 3 Pillars
