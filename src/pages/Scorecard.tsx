@@ -128,7 +128,7 @@ export function Scorecard() {
             </InfoPopover>
           </div>
           <div className="composite__body">
-            <ScoreRing value={summary.adjusted} size={176} caption={false} />
+            <ScoreRing value={summary.adjusted} size={148} caption={false} />
             <div className="composite__side">
               <div className="composite__name">
                 <span className="composite__team">{team.short}</span>
@@ -175,17 +175,19 @@ export function Scorecard() {
                   <PillarInfo pillar={p} />
                 </InfoPopover>
               </div>
-              <div className="kpi-figure">
-                <span className={`kpi-grade grade-${grade(s.adjusted).toLowerCase()}`}>{grade(s.adjusted)}</span>
-                <span className="kpi-score">{s.adjusted}</span>
-              </div>
-              <div className="kpi-facts">
-                {facts.map(([label, value]) => (
-                  <div key={label} className="kpi-fact">
-                    <span>{label}</span>
-                    <b>{value}</b>
-                  </div>
-                ))}
+              <div className="kpi-body">
+                <div className="kpi-figure">
+                  <span className={`kpi-grade grade-${grade(s.adjusted).toLowerCase()}`}>{grade(s.adjusted)}</span>
+                  <span className="kpi-score">{s.adjusted}</span>
+                </div>
+                <div className="kpi-facts">
+                  {facts.map(([label, value]) => (
+                    <div key={label} className="kpi-fact">
+                      <span>{label}</span>
+                      <b>{value}</b>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="meter">
                 <span style={{ width: `${s.adjusted}%` }} className={`pillar-fill pillar-fill--${p.toLowerCase()}`} />
