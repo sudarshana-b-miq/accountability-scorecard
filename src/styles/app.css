@@ -132,10 +132,13 @@ a { color: var(--f-brand-500); text-decoration: none; }
   .score-sticker.is-playing .score-sticker__prop, .score-sticker:hover .score-sticker__prop { animation: sticker-tip 1.15s ease; }
   .score-sticker.is-playing .score-sticker__spark, .score-sticker:hover .score-sticker__spark { animation: sticker-burst 1.15s ease forwards; }
   .score-sticker.is-playing .score-sticker__extra, .score-sticker:hover .score-sticker__extra { animation: sticker-rise 1.15s ease forwards; }
+  .score-sticker--a.is-playing .score-sticker__prop, .score-sticker--a:hover .score-sticker__prop { animation: sticker-slide 1.15s ease; }
   .score-sticker--c.is-playing .score-sticker__prop, .score-sticker--c:hover .score-sticker__prop { animation: sticker-wink 1.15s ease; }
   .score-sticker--d.is-playing .score-sticker__buddy, .score-sticker--d:hover .score-sticker__buddy { animation: sticker-lean 1.15s ease; }
-  .score-sticker--e.is-playing .score-sticker__prop, .score-sticker--e:hover .score-sticker__prop { animation: sticker-bob 1.15s ease; }
+  .score-sticker--e.is-playing .score-sticker__prop, .score-sticker--e:hover .score-sticker__prop { animation: sticker-wave 1.15s ease; }
 }
+@keyframes sticker-slide { 45% { transform: translateY(7px) rotate(8deg); } }
+@keyframes sticker-wave { 30% { transform: rotate(-16deg); } 65% { transform: rotate(10deg); } }
 @keyframes sticker-hop { 0% { transform: translateY(10px) scale(.92); } 50% { transform: translateY(-8px) scale(1.05); } 100% { transform: none; } }
 @keyframes sticker-tip { 50% { transform: rotate(10deg); } }
 @keyframes sticker-burst { 0% { opacity: 0; transform: scale(.4); } 40% { opacity: 1; } 100% { opacity: 1; transform: translate(var(--x), var(--y)) scale(1); } }
