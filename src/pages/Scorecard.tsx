@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowsClockwise, BellSimple, CaretRight, Code, Cpu, Database, DownloadSimple, MagnifyingGlass, Sparkle, SquaresFour, UsersThree } from '@miq/fiber-ui/icons';
 import { useGenie } from '../genie/GenieProvider';
 import { ButtonV2, Card, Chip, Dropdown, IconButton, InfoPopover, Input, Pill, ScoreRing, Tabs } from '../fiber';
-import { PILLAR_WEIGHTS, codalBand, findingsFor, grade, itemScore, itemsForTeam, money, teamById, teamFilterOptions, teamSummary } from '../data/model';
+import { PILLAR_WEIGHTS, findingsFor, grade, itemScore, itemsForTeam, money, teamById, teamFilterOptions, teamSummary } from '../data/model';
 import type { Item, Pillar } from '../data/model';
 import { useStore } from '../state/Store';
 import { CompositeInfo, PillarInfo } from '../components/ScoreInfo';
@@ -26,6 +26,11 @@ const PILLAR_TAB_ICON: Record<PillarTab, ReactNode> = {
   Compute: <Cpu size={16} />,
   Data: <Database size={16} />,
 };
+
+function compactMoney(value: number) {
+  if (Math.abs(value) < 1000) return money(value);
+  return `$${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value)}`;
+}
 
 function SpendDelta({ pct, direction }: { pct: number; direction?: string | null }) {
   if (!pct && !direction) return null;
@@ -131,10 +136,12 @@ export function Scorecard() {
             <ScoreRing value={summary.adjusted} size={148} caption={false} />
             <div className="composite__side">
               <div className="composite__name">
-                <span className="composite__team">{team.short}</span>
+                <span className="composite__score">
+                  <span className="composite__score-label">Score</span>
+                  {Math.round(summary.adjusted)}
+                </span>
                 <ScoreSticker score={summary.adjusted} />
               </div>
-              <span className="score-ring__caption">Score: {Math.round(summary.adjusted)}</span>
               <span className="muted sm">{teamItems.length} Resources Across 3 Pillars</span>
               {metrics.compute && <SpendDelta pct={metrics.compute.spendChangePct} direction={metrics.compute.spendDirection} />}
             </div>
@@ -143,24 +150,25 @@ export function Scorecard() {
 
         {(['Code', 'Compute', 'Data'] as Pillar[]).map(p => {
           const s = summary.pillars[p];
+          const compute = metrics.compute;
           const facts: [string, string][] =
             p === 'Data' && metrics.data
               ? [
                   ['Assets', String(metrics.data.totalAssets)],
                   ['Governed', String(metrics.data.governedCount)],
-                  ['Band', codalBand(s.adjusted)],
+                  ['No docs', String(metrics.data.assetsMissingComment)],
                 ]
-              : p === 'Compute' && metrics.compute
+              : p === 'Compute' && compute
                 ? [
-                    ['Failed runs', `${metrics.compute.failedRuns}/${metrics.compute.jobRuns}`],
-                    ['Spend', money(metrics.compute.spendCurrentUsd)],
-                    ['Chronic', String(metrics.compute.chronicPastSla)],
+                    ['Success', compute.jobRuns ? `${Math.round((1 - compute.failedRuns / compute.jobRuns) * 1000) / 10}%` : '—'],
+                    ['Spend', compactMoney(compute.spendCurrentUsd)],
+                    ['Past SLA', String(compute.chronicPastSla)],
                   ]
                 : p === 'Code' && metrics.code
                   ? [
-                      ['Findings', String(metrics.code.totalFindings)],
+                      ['Secrets', String(metrics.code.totalFindings)],
+                      ['High risk', String(metrics.code.highCount)],
                       ['Notebooks', String(metrics.code.notebooksAffected)],
-                      ['High', String(metrics.code.highCount)],
                     ]
                   : [
                       ['Resources', String(s.count)],
@@ -180,17 +188,17 @@ export function Scorecard() {
                   <span className={`kpi-grade grade-${grade(s.adjusted).toLowerCase()}`}>{grade(s.adjusted)}</span>
                   <span className="kpi-score">{s.adjusted}</span>
                 </div>
-                <div className="kpi-facts">
-                  {facts.map(([label, value]) => (
-                    <div key={label} className="kpi-fact">
-                      <span>{label}</span>
-                      <b>{value}</b>
-                    </div>
-                  ))}
+                <div className="meter">
+                  <span style={{ width: `${s.adjusted}%` }} className={`pillar-fill pillar-fill--${p.toLowerCase()}`} />
                 </div>
               </div>
-              <div className="meter">
-                <span style={{ width: `${s.adjusted}%` }} className={`pillar-fill pillar-fill--${p.toLowerCase()}`} />
+              <div className="kpi-facts">
+                {facts.map(([label, value]) => (
+                  <div key={label} className="kpi-fact">
+                    <b>{value}</b>
+                    <span>{label}</span>
+                  </div>
+                ))}
               </div>
             </Card>
           );
