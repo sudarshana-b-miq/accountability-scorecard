@@ -251,6 +251,7 @@ export function Scorecard() {
           </p>
         </div>
         <div className="chart-grid">
+          <div className="home-focus__stack">
           <Card className="pillar-card">
             <div className="chart-card__head">
               <div className="kpi-label">Points Lost On The Overall Score</div>
@@ -271,6 +272,24 @@ export function Scorecard() {
               ))}
             </div>
           </Card>
+          <Card className="pillar-card">
+            <div className="chart-card__head">
+              <div className="kpi-label">Score Caps</div>
+              <p className="muted xs">
+                {summary.cap < 100 ? `A cap is on. The overall grade cannot go above ${grade(summary.cap)} until it clears.` : 'No caps are on. The overall score is not being held back.'}
+              </p>
+            </div>
+            <div className="gate-list">
+              {summary.gates.map(gate => (
+                <div key={gate.label} className={`gate-row${gate.ok ? ' is-ok' : ' is-on'}`}>
+                  <span className="gate-row__mark">{gate.ok ? '✓' : '!'}</span>
+                  <span className="gate-row__label">{gate.label.split('·')[0].trim()}</span>
+                  <span className="gate-row__state">{gate.ok ? 'Clear' : gate.cap ? `Caps At ${grade(gate.cap)}` : 'Watch'}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+          </div>
           <Card className="pillar-card">
             <div className="chart-card__head">
               <div className="kpi-label">Lowest Scoring Resources</div>
