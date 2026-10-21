@@ -2,6 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { loadScorecard } from './databricks-data.js';
+import { triggerAlert } from './alerts.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(root, 'dist');
@@ -17,10 +18,21 @@ function scorecardErrorMessage(error, hasUserToken) {
   return message;
 }
 
-export function createApp(staticDirectory = dist, scorecardLoader = loadScorecard) {
+export function createApp(staticDirectory = dist, scorecardLoader = loadScorecard, alertTrigger = triggerAlert) {
   const app = express();
 
   app.disable('x-powered-by');
+  app.use(express.json());
+  app.post('/api/alerts', async (request, response) => {
+    try {
+      response.json(await alertTrigger(request.body ?? {}, process.env, {
+        accessToken: request.get('x-forwarded-access-token'),
+      }));
+    } catch (error) {
+      console.error('Unable to trigger alert', error);
+      response.json({ error: error instanceof Error ? error.message : 'Unable to trigger alert' });
+    }
+  });
   app.get('/api/health', (_request, response) => {
     response.json({ status: 'ok' });
   });

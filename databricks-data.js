@@ -451,24 +451,33 @@ function connectionOptions(env, accessToken) {
   };
 }
 
-export async function loadScorecard(env = process.env, accessToken) {
+export async function withSqlSession(env, fn, accessToken) {
   const client = new DBSQLClient();
   let session;
   try {
     await client.connect(connectionOptions(env, accessToken));
     session = await client.openSession();
-    const raw = {};
-    for (const [name, sql] of Object.entries(TABLE_QUERIES)) {
+    const query = async sql => {
       const operation = await session.executeStatement(sql, { runAsync: true });
       try {
-        raw[name] = await operation.fetchAll();
+        return await operation.fetchAll();
       } finally {
         await operation.close();
       }
-    }
-    return normalizeScorecard(raw);
+    };
+    return await fn(query);
   } finally {
     if (session) await session.close();
     await client.close();
   }
+}
+
+export async function loadScorecard(env = process.env, accessToken) {
+  return withSqlSession(env, async query => {
+    const raw = {};
+    for (const [name, sql] of Object.entries(TABLE_QUERIES)) {
+      raw[name] = await query(sql);
+    }
+    return normalizeScorecard(raw);
+  }, accessToken);
 }

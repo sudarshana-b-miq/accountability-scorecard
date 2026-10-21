@@ -11,7 +11,6 @@ import {
   Typography as FiberTypography,
 } from '@miq/fiber-ui';
 import { Chip as FiberChip } from '@miq/fiber-ui';
-import { SolidGaugeChart } from '@miq/fiber-ui/charts';
 import { CheckCircle, XCircle } from '@miq/fiber-ui/icons';
 
 export type Tone = 'success' | 'warning' | 'error' | 'info' | 'brand' | 'neutral' | 'data4';
@@ -256,32 +255,48 @@ const GAUGE_COLOR: Record<string, { arc: string; label: string }> = {
   E: { arc: '#da294b', label: '#ad102c' },
 };
 
+function gaugePoint(cx: number, cy: number, radius: number, t: number): [number, number] {
+  const angle = Math.PI * (1 - t);
+  return [cx + radius * Math.cos(angle), cy - radius * Math.sin(angle)];
+}
+
+function gaugeArc(cx: number, cy: number, radius: number, from: number, to: number) {
+  const [x1, y1] = gaugePoint(cx, cy, radius, from);
+  const [x2, y2] = gaugePoint(cx, cy, radius, Math.max(from + 0.001, to));
+  const large = to - from > 0.5 ? 1 : 0;
+  return `M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}`;
+}
+
 export function ScoreRing({ value, size = 196, label }: { value: number; size?: number; tone?: Tone; label?: string }) {
   const score = Math.max(0, Math.min(100, value));
   const letter = score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : score >= 40 ? 'D' : 'E';
   const gauge = GAUGE_COLOR[letter];
+  const width = size;
+  const height = Math.round(size * 0.68);
+  const cx = width / 2;
+  const cy = height - 6;
+  const radius = size * 0.4;
+  const [nx, ny] = gaugePoint(cx, cy, radius - 16, score / 100);
+  const ticks = [0, 0.25, 0.5, 0.75, 1];
   return (
-    <div className="score-ring" style={{ width: size, height: size }}>
-      <SolidGaugeChart
-        ariaLabel={label ?? `Score ${score}, grade ${letter}`}
-        width={size}
-        height={size}
-        value={score}
-        min={0}
-        max={100}
-        legend={{ enabled: false }}
-        tooltip={{ enabled: false }}
-        ticks={{ enabled: false }}
-        pane={{
-          startAngle: 0,
-          endAngle: 360,
-          size: '92%',
-          center: ['50%', '50%'],
-          backgroundColor: '#ebebf0',
-        }}
-        tokenOverrides={{ singleSeriesPrimary: gauge.arc, dataLabel: gauge.label }}
-        dataLabels={{ formatter: () => `${letter}  ${score}` }}
-      />
+    <div className="score-ring" style={{ width, height }}>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={label ?? `Score ${score}, grade ${letter}`}>
+        <path d={gaugeArc(cx, cy, radius, 0, 1)} fill="none" stroke="#ebebf0" strokeWidth={12} strokeLinecap="round" />
+        {score > 0 && <path d={gaugeArc(cx, cy, radius, 0, score / 100)} fill="none" stroke={gauge.arc} strokeWidth={12} strokeLinecap="round" />}
+        {ticks.map(tick => {
+          const [x1, y1] = gaugePoint(cx, cy, radius + 8, tick);
+          const [x2, y2] = gaugePoint(cx, cy, radius + 14, tick);
+          return <line key={tick} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#c6c6cc" strokeWidth={tick === 0 || tick === 1 ? 2 : 1.5} strokeLinecap="round" />;
+        })}
+        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={gauge.label} strokeWidth={3} strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r={5} fill={gauge.arc} stroke="#fff" strokeWidth={2} />
+        <text x={cx} y={cy - 28} textAnchor="middle" fill={gauge.label} fontSize={size > 150 ? 28 : 22} fontWeight={700} fontFamily="DM Sans, sans-serif">
+          {letter}
+        </text>
+        <text x={cx} y={cy - 10} textAnchor="middle" fill="#717180" fontSize={12} fontWeight={600} fontFamily="DM Sans, sans-serif">
+          {score}
+        </text>
+      </svg>
     </div>
   );
 }

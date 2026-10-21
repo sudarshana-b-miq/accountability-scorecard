@@ -7,6 +7,13 @@ resources:
       name: accountability-scorecard
       description: MiQ data platform accountability scorecard
       source_code_path: .
+      resources:
+        - name: slack-bot-token
+          description: Slack bot token for scorecard alerts
+          secret:
+            scope: flexible_job
+            key: slack_bot_token
+            permission: READ
 
 targets:
   dev:

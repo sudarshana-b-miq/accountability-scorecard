@@ -334,7 +334,7 @@ export function Scorecard() {
                         </div>
                       </td>
                       <td>
-                        <ScoreCell score={itemScore(i, excepted, month.offset)} layout="bar" width={180} />
+                        <ScoreCell score={itemScore(i, excepted, month.offset)} layout="bar" />
                       </td>
                       <td className="is-center">
                         <span className="issues-cell">{openCount(i)}</span>

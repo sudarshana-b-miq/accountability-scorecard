@@ -62,7 +62,7 @@ interface StoreValue {
   setStage: (findingId: string, stage: Stage) => void;
   requestException: (input: { findingId: string; reason: string; comment: string; durationDays: number }) => string;
   decideException: (id: string, status: 'approved' | 'rejected', adminComment: string) => void;
-  sendNotification: (input: { itemId: string; findingIds: string[]; recipients: string[]; channels: string[] }) => void;
+  sendNotification: (input: { itemId: string; findingIds: string[]; recipients: string[]; channels: string[] }) => Promise<boolean>;
   markRead: (id: string) => void;
   markAllRead: () => void;
   refreshing: boolean;
@@ -152,8 +152,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   );
 
   const sendNotification: StoreValue['sendNotification'] = useCallback(
-    ({ itemId, findingIds, recipients, channels }) => {
+    async ({ itemId, findingIds, channels }) => {
       const item = itemById(itemId)!;
+      let summary = '';
+      try {
+        const response = await fetch('/api/alerts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pillar: item.pillar, teamId: item.team, channels }),
+        });
+        const result = await response.json().catch(() => ({ error: `Alert API returned ${response.status}` }));
+        if (!response.ok || result.error) throw new Error(result.error || `Alert API returned ${response.status}`);
+        summary = result.summary || 'Posted to Slack';
+      } catch (error) {
+        toast({ tone: 'error', title: 'Alert not sent', body: error instanceof Error ? error.message : 'Unable to send the Slack alert.' });
+        return false;
+      }
       setStages(s => {
         const next = { ...s };
         findingIds.forEach(f => {
@@ -161,14 +175,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
         return next;
       });
-      const who = recipients.join(' and ');
       addNotice({
         kind: 'sent',
         title: 'Notification delivered',
-        body: `${findingIds.length === 1 ? findingById(findingIds[0])?.check : `${findingIds.length} issues`} on ${item.name} sent to ${who} via ${channels.join(' and ')}`,
+        body: summary,
         link: `/item/${item.id}`,
       });
-      toast({ tone: 'success', title: 'Notification sent', body: `${who} notified via ${channels.join(' and ')}.` });
+      toast({ tone: 'success', title: 'Notification sent', body: summary });
+      return true;
     },
     [addNotice, toast],
   );

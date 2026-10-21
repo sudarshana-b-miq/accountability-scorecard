@@ -121,6 +121,48 @@ test('queries with the forwarded user token', async () => {
   assert.equal(seenToken, 'user-token');
 });
 
+test('posts the notebook Slack alert without starting a job', async () => {
+  const { triggerAlert } = await import('./alerts.js');
+  const statements = [];
+  const posts = [];
+  const result = await triggerAlert({ pillar: 'Compute', teamId: 'T-0001' }, {}, {
+    query: async statement => {
+      statements.push(statement);
+      if (statement.includes('miq_teams')) return [{ team_name: 'ANI', slack_channel_id: 'C123', slack_channel_name: 'ani' }];
+      if (statement.includes('miq_team_members')) return [{ member_email: 'a@miqdigital.com' }];
+      return [{
+        workspace: 'prod',
+        job_id: 9,
+        job_name: 'nightly',
+        owner_email: 'a@miqdigital.com',
+        run_as_email: 'a@miqdigital.com',
+        failures_in_last_10_runs: 8,
+        total_last_10_runs: 10,
+        job_url: 'https://example/jobs/9',
+        last_failure_time: '2026-10-01 00:00:00',
+        trigger_type: 'CRON',
+      }];
+    },
+    slackCall: async (method, request) => {
+      posts.push({ method, ...request });
+      return { ok: true, user: { id: 'U1' }, message: { ts: '1.2' } };
+    },
+  });
+
+  assert.equal(result.sent, 1);
+  assert.equal(result.channel, 'C123');
+  assert.match(statements.join('\n'), /long_failing_jobs_inventory/);
+  const message = posts.find(post => post.method === 'chat.postMessage');
+  assert.equal(message.json.channel, 'C123');
+  assert.match(message.json.text, /nightly/);
+  assert.equal(posts.some(post => post.method === 'users.lookupByEmail'), true);
+});
+
+test('rejects a pillar the notifier does not cover', async () => {
+  const { triggerAlert } = await import('./alerts.js');
+  await assert.rejects(() => triggerAlert({ pillar: 'Data', teamId: 'T-0001' }, {}, { query: async () => [] }), /no alert for the Data pillar/);
+});
+
 test('serves the SPA entry point for client routes', async () => {
   await withServer(async baseUrl => {
     const response = await fetch(`${baseUrl}/recommendations`);

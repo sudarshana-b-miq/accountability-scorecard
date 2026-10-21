@@ -16,6 +16,7 @@ export function NotifyModal({ item, findingId, onClose }: { item: Item | null; f
   const [email, setEmail] = useState(true);
   const [message, setMessage] = useState('');
   const [tried, setTried] = useState(false);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!item) return;
@@ -43,11 +44,16 @@ export function NotifyModal({ item, findingId, onClose }: { item: Item | null; f
   const issueMissing = scope === 'one' && !issue;
   const valid = recipients.length > 0 && channels.length > 0 && !issueMissing && message.trim().length > 0;
 
-  const submit = () => {
+  const submit = async () => {
     setTried(true);
-    if (!valid) return;
-    sendNotification({ itemId: item.id, findingIds: scope === 'all' ? open.map(f => f.id) : [issue], recipients, channels });
-    onClose();
+    if (!valid || sending) return;
+    setSending(true);
+    try {
+      const sent = await sendNotification({ itemId: item.id, findingIds: scope === 'all' ? open.map(f => f.id) : [issue], recipients, channels });
+      if (sent) onClose();
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -67,7 +73,7 @@ export function NotifyModal({ item, findingId, onClose }: { item: Item | null; f
           <ButtonV2 variant="secondary" onClick={onClose}>
             Cancel
           </ButtonV2>
-          <ButtonV2 startIcon={<PaperPlaneTilt size={16} />} onClick={submit}>
+          <ButtonV2 startIcon={<PaperPlaneTilt size={16} />} loading={sending} onClick={submit}>
             Send notification
           </ButtonV2>
         </>
