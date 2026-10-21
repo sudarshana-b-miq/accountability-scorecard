@@ -262,9 +262,10 @@ function gaugePoint(cx: number, cy: number, radius: number, t: number): [number,
 
 function gaugeArc(cx: number, cy: number, radius: number, from: number, to: number) {
   const [x1, y1] = gaugePoint(cx, cy, radius, from);
-  const [x2, y2] = gaugePoint(cx, cy, radius, Math.max(from + 0.001, to));
-  const large = to - from > 0.5 ? 1 : 0;
-  return `M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}`;
+  const [x2, y2] = gaugePoint(cx, cy, radius, Math.min(1, Math.max(from + 0.001, to)));
+  // The gauge is only a semicircle, so the arc is never the long way around the circle.
+  // Sweep 1 runs from the left end up over the top.
+  return `M ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2}`;
 }
 
 export function ScoreRing({ value, size = 196, label }: { value: number; size?: number; tone?: Tone; label?: string }) {
