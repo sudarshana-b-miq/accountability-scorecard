@@ -127,8 +127,8 @@ export function Scorecard() {
       <div className="score-grid">
         <Card className="composite">
           <div className="kpi-label">
-            Team Score
-            <InfoPopover title="How The Team Score Is Calculated" width={440}>
+            Overall Score
+            <InfoPopover title="How The Overall Score Is Calculated" width={440}>
               <CompositeInfo />
             </InfoPopover>
           </div>

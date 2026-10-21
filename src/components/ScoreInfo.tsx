@@ -18,7 +18,7 @@ function Formula({ children }: { children: React.ReactNode }) {
 export function CompositeInfo() {
   return (
     <div className="info-pop">
-      <div className="info-pop__title">How the team score is calculated</div>
+      <div className="info-pop__title">How the overall score is calculated</div>
       <p className="info-pop__lead">A monthly, evidence-based grade of how well a team builds code, runs compute and governs data. Every point traces back to a Databricks system table.</p>
       <div className="info-pop__label">Team composite</div>
       <Formula>Score = 25% Code + 25% Compute + 50% Data</Formula>
