@@ -357,9 +357,16 @@ a { color: var(--f-brand-500); text-decoration: none; }
 .chart-grid > .pillar-card > * { height: 100%; }
 .chart-card__head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
 .chart-card__head p { margin: 0; }
+.home-focus { --card-accent: var(--f-brand-500); }
+.home-focus .chart-grid { align-items: start; }
 .bar-chart { display: flex; flex-direction: column; gap: 10px; }
 .bar-chart__row { display: grid; grid-template-columns: 132px minmax(0, 1fr) 64px; align-items: center; gap: 10px; }
+button.bar-chart__row { width: 100%; border: 0; padding: 2px 0; background: transparent; cursor: pointer; font: inherit; color: inherit; text-align: left; border-radius: 6px; }
+button.bar-chart__row:hover .bar-chart__name { color: var(--f-brand-700); text-decoration: underline; }
+.bar-chart--names .bar-chart__row { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.4fr) 36px; }
 .bar-chart__label { font-size: 12px; line-height: 16px; color: var(--f-n-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-chart__label--dot { display: flex; align-items: center; gap: 6px; }
+.bar-chart__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .bar-chart__track { height: 10px; border-radius: 99px; background: var(--f-n-100); overflow: hidden; }
 .bar-chart__track > span { display: block; height: 100%; border-radius: 99px; background: var(--card-accent, var(--f-brand-500)); }
 .bar-chart__value { font-size: 12px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; color: var(--f-n-800); }

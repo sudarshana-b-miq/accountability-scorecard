@@ -30,6 +30,10 @@ const PILLAR_TAB_ICON: Record<PillarTab, ReactNode> = {
   Data: <Database size={16} />,
 };
 
+function formatPoints(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
 function compactMoney(value: number) {
   if (Math.abs(value) < 1000) return money(value);
   return `$${new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value)}`;
@@ -118,8 +122,17 @@ export function Scorecard() {
 
   const pillarCount = (p: PillarTab) => (p === 'All' ? teamItems.length : teamItems.filter(i => i.pillar === p).length);
 
-  const lowest = (['Code', 'Compute', 'Data'] as Pillar[]).reduce((a, b) => (summary.pillars[b].adjusted < summary.pillars[a].adjusted ? b : a));
-  const headline = `${team.short} Scores ${summary.adjusted} (Grade ${grade(summary.adjusted)}). Lowest Pillar: ${lowest} At ${summary.pillars[lowest].adjusted}.`;
+  const drag = (['Code', 'Compute', 'Data'] as Pillar[])
+    .map(pillar => ({
+      pillar,
+      lost: Math.round((100 - summary.pillars[pillar].adjusted) * PILLAR_WEIGHTS[pillar] * 10) / 10,
+    }))
+    .sort((a, b) => b.lost - a.lost);
+  const dragMax = Math.max(1, ...drag.map(row => row.lost));
+  const weakest = [...teamItems]
+    .map(item => ({ item, score: itemScore(item, excepted, month.offset) }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 6);
 
   return (
     <div id="scorecard-pdf" className={refreshing ? 'page is-refreshing' : 'page'}>
@@ -230,48 +243,55 @@ export function Scorecard() {
         })}
       </div>
 
-      <section className="section">
+      <section className="section home-focus">
         <div className="section-head">
-          <h2 className="h2">Evidence From Accountability Tables</h2>
-          <p>{headline}</p>
+          <h2 className="h2">Where The Score Is Lost</h2>
+          <p>
+            {drag[0].pillar} accounts for {formatPoints(drag[0].lost)} of the points still available on the overall score. Open the shortest resource bars first.
+          </p>
         </div>
-        <div className="score-grid" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-          <Card>
-            <div className="kpi-label">Data · Asset Bands</div>
-            <div className="muted sm">
-              {metrics.data
-                ? `${metrics.data.catalogGradeCount} Catalog-Grade · ${metrics.data.governedCount} Governed · ${metrics.data.documentedCount} Documented · ${metrics.data.assetsMissingComment} Missing Comments`
-                : 'No accountability_data_summary Rows For This Team'}
+        <div className="chart-grid">
+          <Card className="pillar-card">
+            <div className="chart-card__head">
+              <div className="kpi-label">Points Lost On The Overall Score</div>
+              <p className="muted xs">Gap to 100, multiplied by the pillar weight. Data is 50%. Code and Compute are 25% each.</p>
             </div>
-            {metrics.data && (
-              <div className="muted xs" style={{ marginTop: 8 }}>
-                Avg Ontology {Math.round(metrics.data.avgOntology)} · Convention {Math.round(metrics.data.avgConvention)} · Lineage {Math.round(metrics.data.avgLineage)}
-              </div>
-            )}
+            <div className="bar-chart">
+              {drag.map(row => (
+                <div key={row.pillar} className="bar-chart__row">
+                  <span className="bar-chart__label bar-chart__label--dot">
+                    <span className={`pillar-dot pillar-dot--${row.pillar.toLowerCase()}`} />
+                    <span className="bar-chart__name">{row.pillar}</span>
+                  </span>
+                  <span className="bar-chart__track">
+                    <span style={{ width: `${Math.max(2, (row.lost / dragMax) * 100)}%`, background: `var(--f-pillar-${row.pillar.toLowerCase()})` }} />
+                  </span>
+                  <span className="bar-chart__value">{formatPoints(row.lost)}</span>
+                </div>
+              ))}
+            </div>
           </Card>
-          <Card>
-            <div className="kpi-label">Compute · Spend Window</div>
-            <div className="muted sm">
-              {metrics.compute
-                ? `${money(metrics.compute.spendCurrentUsd)} Current · ${money(metrics.compute.spendPreviousUsd)} Prior · ${metrics.compute.chronicPastSla} Chronic Past SLA`
-                : 'No accountability_compute_summary Rows For This Team'}
+          <Card className="pillar-card">
+            <div className="chart-card__head">
+              <div className="kpi-label">Lowest Scoring Resources</div>
+              <p className="muted xs">Score out of 100. The shortest bar is the first resource to fix.</p>
             </div>
-            {metrics.compute?.windowStart && (
-              <div className="muted xs" style={{ marginTop: 8 }}>
-                Window {metrics.compute.windowStart} → {metrics.compute.windowEnd}
-              </div>
-            )}
-          </Card>
-          <Card>
-            <div className="kpi-label">Code · Secret Findings</div>
-            <div className="muted sm">
-              {metrics.code
-                ? `${metrics.code.highCount} High · ${metrics.code.mediumCount} Medium · ${metrics.code.lowCount} Low Across ${metrics.code.notebooksAffected} Notebooks`
-                : 'No accountability_code_summary Rows For This Team'}
-            </div>
-            {summary.gates.length > 0 && (
-              <div className="muted xs" style={{ marginTop: 8 }}>
-                Gates: {summary.gates.map(g => (g.ok ? '✓' : '✗') + ' ' + g.label.split('·')[0].trim()).join(' · ')}
+            {weakest.length === 0 ? (
+              <p className="muted sm">No resources for this team yet.</p>
+            ) : (
+              <div className="bar-chart bar-chart--names">
+                {weakest.map(({ item, score }) => (
+                  <button key={item.id} type="button" className="bar-chart__row" onClick={() => navigate(`/item/${item.id}`)}>
+                    <span className="bar-chart__label bar-chart__label--dot" title={item.name}>
+                      <span className={`pillar-dot pillar-dot--${item.pillar.toLowerCase()}`} />
+                      <span className="bar-chart__name">{item.name}</span>
+                    </span>
+                    <span className="bar-chart__track">
+                      <span style={{ width: `${Math.max(2, score)}%`, background: `var(--f-pillar-${item.pillar.toLowerCase()})` }} />
+                    </span>
+                    <span className="bar-chart__value">{score}</span>
+                  </button>
+                ))}
               </div>
             )}
           </Card>
